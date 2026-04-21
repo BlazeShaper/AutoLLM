@@ -1,0 +1,256 @@
+import os
+import streamlit as st
+import pandas as pd
+
+from logger import render_sidebar_logs
+
+# ─── CSS Enjeksiyonu ─────────────────────────────────────────────────────────
+
+def inject_css():
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Kart stili */
+    .metric-card {
+        background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
+        border: 1px solid rgba(100, 108, 255, 0.3);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+    .metric-card h3 {
+        color: #a0a0c0;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.25rem;
+    }
+    .metric-card p {
+        color: #e0e0ff;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    /* Step indicator */
+    .step-done   { color: #4ade80; font-weight: 600; }
+    .step-active { color: #818cf8; font-weight: 700; font-size: 1.05rem; }
+    .step-wait   { color: #6b7280; }
+
+    /* Section başlığı */
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #c7d2fe;
+        border-left: 4px solid #6366f1;
+        padding-left: 0.6rem;
+        margin: 1rem 0 0.5rem;
+    }
+
+    /* Genel buton genişletme */
+    div.stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+# ─── Header ──────────────────────────────────────────────────────────────────
+
+def render_header():
+    inject_css()
+    st.markdown(
+        """
+        <div style='text-align:center; padding: 1.5rem 0 0.5rem;'>
+          <h1 style='font-size:2.4rem; font-weight:800;
+                     background: linear-gradient(90deg,#818cf8,#a78bfa,#60a5fa);
+                     -webkit-background-clip:text; -webkit-text-fill-color:transparent;'>
+            🧠 OutoLLM — AutoML Platform
+          </h1>
+          <p style='color:#9ca3af; font-size:1rem; margin-top:-0.4rem;'>
+            Verilerinizden yapay zeka modelleri saniyeler içinde oluşturun.
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ─── Sidebar ─────────────────────────────────────────────────────────────────
+
+def render_mode_toggle():
+    st.sidebar.markdown("## ⚙️ Uygulama Ayarları")
+    st.sidebar.markdown("---")
+
+    mode = st.sidebar.radio(
+        "Kullanım Modu:",
+        ("🚀 Standart Mod", "🔬 Uzman Modu"),
+        help="Standart mod hızlıdır. Uzman mod tüm kontrolleri açar."
+    )
+    st.session_state["mode"] = "standard" if mode.startswith("🚀") else "expert"
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 📋 Pipeline Durumu")
+
+    stages = ["Veri Yükleme", "Temizleme", "Eğitim", "Değerlendirme", "Tahmin", "EDA"]
+    flags = [
+        st.session_state.get("raw_df") is not None,
+        st.session_state.get("cleaned_df") is not None,
+        st.session_state.get("best_model") is not None,
+        st.session_state.get("leaderboard") is not None,
+        st.session_state.get("model_card") is not None,
+        st.session_state.get("raw_df") is not None,   # EDA veri yüklendi mi
+    ]
+    for stage, done in zip(stages, flags):
+        icon = "✅" if done else "⏳"
+        st.sidebar.markdown(f"{icon} {stage}")
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(
+        "<small style='color:#6b7280;'>v1.0.0 · PyCaret 3.x · Streamlit</small>",
+        unsafe_allow_html=True
+    )
+
+    # ── Model Kaydı ──────────────────────────────────────────────────
+    render_model_registry()
+
+    # ── Uygulama Logları ──────────────────────────────────────────
+    render_sidebar_logs()
+
+
+# ─── Model Registry (Sidebar) ────────────────────────────────────────
+
+def render_model_registry():
+    """saved_models/ altındaki .pkl dosyalarını listeler; seçilen model yüklenir."""
+    save_dir = os.path.join(os.getcwd(), "saved_models")
+    if not os.path.isdir(save_dir):
+        return
+
+    pkl_files = [
+        f for f in os.listdir(save_dir)
+        if f.endswith(".pkl")
+    ]
+    if not pkl_files:
+        return
+
+    pkl_files_sorted = sorted(pkl_files, reverse=True)   # en yeni üste
+
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🗄️ Kaydedilmiş Modeller")
+
+    selected = st.sidebar.selectbox(
+        "Model seçin:",
+        ["— Seçin —"] + pkl_files_sorted,
+        key="registry_select",
+    )
+
+    if selected and selected != "— Seçin —":
+        full_path = os.path.join(save_dir, selected)
+        card_path = full_path.replace(".pkl", "_card.json")
+
+        # JSON kartını sidebar'da göster
+        if os.path.isfile(card_path):
+            import json
+            with open(card_path, encoding="utf-8") as f:
+                card = json.load(f)
+            with st.sidebar.expander("📄 Model Detayı", expanded=False):
+                st.sidebar.write(f"🎯 Görev: `{card.get('task_type', '?')}`")
+                st.sidebar.write(f"📅 Tarih: `{card.get('timestamp', '?')}`")
+                st.sidebar.write(f"📊 Satır: `{card.get('num_rows_trained', '?'):,}`")
+                st.sidebar.write(f"🔢 Özellik: `{card.get('num_features', '?')}`")
+                st.sidebar.write(f"🎯 Hedef: `{card.get('target_col', '?')}`")
+
+        # Modeli oturuma yükle butonu
+        if st.sidebar.button("🔄 Bu Modeli Yükle", key="btn_registry_load"):
+            import pycaret.classification as pc_c
+            import pycaret.regression   as pc_r
+            import pycaret.clustering   as pc_cl
+            task = card.get("task_type", "classification") if os.path.isfile(card_path) else "classification"
+            _pc = {"classification": pc_c, "regression": pc_r, "clustering": pc_cl}.get(task, pc_c)
+            model_name = full_path.removesuffix(".pkl")
+            try:
+                loaded = _pc.load_model(model_name)
+                st.session_state["best_model"] = loaded
+                st.session_state["pc_module"]   = _pc
+                if os.path.isfile(card_path):
+                    st.session_state["model_card"]  = card
+                    st.session_state["task_type"]   = task
+                st.sidebar.success(f"✅ `{selected}` oturuma yüklendi!")
+            except Exception as e:
+                st.sidebar.error(f"❌ Yükleme hatası: {e}")
+
+
+# ─── Step Indicator ──────────────────────────────────────────────────────────
+
+def render_step_indicator(current_step: int):
+    steps = ["📂 Yükleme", "🧹 Temizlik", "🧠 Eğitim", "📊 Değerlendirme", "🔮 Tahmin"]
+    cols = st.columns(len(steps))
+    for i, (col, step) in enumerate(zip(cols, steps)):
+        with col:
+            if i < current_step:
+                st.markdown(f"<p class='step-done'>✅ {step}</p>", unsafe_allow_html=True)
+            elif i == current_step:
+                st.markdown(f"<p class='step-active'>▶ {step}</p>", unsafe_allow_html=True)
+            else:
+                st.markdown(f"<p class='step-wait'>○ {step}</p>", unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:rgba(99,102,241,0.3);'>", unsafe_allow_html=True)
+
+
+# ─── Veri Önizleme ───────────────────────────────────────────────────────────
+
+def render_dataframe_preview(df: pd.DataFrame, title: str = "📋 Veri Önizleme"):
+    st.markdown(f"<p class='section-title'>{title}</p>", unsafe_allow_html=True)
+
+    # Özet metrik kartları
+    cols = st.columns(4)
+    with cols[0]:
+        st.metric("Satır Sayısı", f"{df.shape[0]:,}")
+    with cols[1]:
+        st.metric("Sütun Sayısı", f"{df.shape[1]}")
+    with cols[2]:
+        missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
+        st.metric("Eksik Veri", f"{missing_pct:.1f}%")
+    with cols[3]:
+        dup_count = df.duplicated().sum()
+        st.metric("Yinelenen Satır", f"{dup_count:,}")
+
+    st.dataframe(df.head(10), use_container_width=True)
+
+    with st.expander("🔍 Veri Türleri & İstatistikler"):
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.markdown("**Sütun Bilgileri**")
+            info_df = pd.DataFrame({
+                "Sütun": df.columns,
+                "Tür": df.dtypes.values.astype(str),
+                "Benzersiz": [df[c].nunique() for c in df.columns],
+                "Eksik": [df[c].isnull().sum() for c in df.columns],
+            })
+            st.dataframe(info_df, use_container_width=True, hide_index=True)
+        with col_b:
+            st.markdown("**Sayısal Sütun İstatistikleri**")
+            numeric_df = df.select_dtypes(include="number")
+            if not numeric_df.empty:
+                st.dataframe(numeric_df.describe().T.round(3), use_container_width=True)
+            else:
+                st.info("Sayısal sütun bulunamadı.")
+
+
+# ─── Uyarı Banner ────────────────────────────────────────────────────────────
+
+def render_warning_banner(msg: str):
+    st.warning(msg, icon="⚠️")

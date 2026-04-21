@@ -1,0 +1,6 @@
+streamlit>=1.32.0
+pandas>=2.1.0
+pycaret[full]>=3.3.0
+ydata-profiling>=4.6.0
+openpyxl>=3.1.0
+xlrd>=2.0.0

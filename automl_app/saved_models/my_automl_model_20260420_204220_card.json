@@ -1,0 +1,31 @@
+{
+    "model_name": "my_automl_model",
+    "timestamp": "20260420_204220",
+    "task_type": "classification",
+    "target_col": "Region",
+    "features": [
+        "Country",
+        "Population (millions)",
+        "HDI",
+        "GDP per Capita",
+        "Cropland Footprint",
+        "Grazing Footprint",
+        "Forest Footprint",
+        "Carbon Footprint",
+        "Fish Footprint",
+        "Total Ecological Footprint",
+        "Cropland",
+        "Grazing Land",
+        "Forest Land",
+        "Fishing Water",
+        "Urban Land",
+        "Total Biocapacity",
+        "Biocapacity Deficit or Reserve",
+        "Earths Required",
+        "Countries Required",
+        "Data Quality"
+    ],
+    "pycaret_version": "3.3.2",
+    "num_rows_trained": 188,
+    "num_features": 20
+}
