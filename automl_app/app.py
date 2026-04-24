@@ -321,6 +321,108 @@ with tab3:
                 st.markdown("### ⚙️ Eğitim Ayarları")
                 imputation_dict = {}
 
+                # ── Veri Ön İşleme Seçenekleri (her modda görünür) ──────────
+                with st.expander("🔧 Veri Ön İşleme Seçenekleri", expanded=True):
+                    st.markdown(
+                        "<small style='color:#9ca3af;'>Aşağıdaki seçenekler PyCaret setup() fonksiyonuna "
+                        "doğrudan iletilir ve model başarımını önemli ölçüde artırabilir.</small>",
+                        unsafe_allow_html=True,
+                    )
+                    pp_col1, pp_col2 = st.columns(2)
+                    with pp_col1:
+                        do_normalize = st.toggle(
+                            "📐 Veriyi Normalize Et",
+                            value=False,
+                            key="pp_normalize",
+                            help="Sayısal özellikleri 0-1 aralığına ölçekler (normalize=True). "
+                                 "Lineer modeller (Ridge, Lasso, SVM) için özellikle önemlidir.",
+                        )
+                        do_feature_selection = st.toggle(
+                            "🎯 Otomatik Özellik Seçimi",
+                            value=False,
+                            key="pp_feature_selection",
+                            help="En bilgilendirici %80 özelliği tutar, geri kalanı eler "
+                                 "(feature_selection=True, n_features_to_select=0.8). "
+                                 "Gürültülü/ilgisiz sütunları modelden uzaklaştırır.",
+                        )
+                    with pp_col2:
+                        do_remove_outliers = st.toggle(
+                            "🚫 Aykırı Değerleri Temizle",
+                            value=False,
+                            key="pp_remove_outliers",
+                            help="Aykırı değerleri eğitim verisinden otomatik çıkarır "
+                                 "(remove_outliers=True). Regresyon R² skorunu artırır.",
+                        )
+                        do_pca = st.toggle(
+                            "📉 PCA Uygula",
+                            value=False,
+                            key="pp_pca",
+                            help="Boyut indirgeme için PCA uygular (pca=True). "
+                                 "Çok sayıda özellik olduğunda eğitimi hızlandırır.",
+                        )
+
+                    st.markdown("---")
+                    pp_col3, pp_col4 = st.columns(2)
+                    with pp_col3:
+                        do_remove_multicollinearity = st.toggle(
+                            "🔗 Çoklu Doğrusallığı Gider",
+                            value=False,
+                            key="pp_multicollinearity",
+                            help="Birbirleriyle yüksek korelasyonlu (çok doğrusal) özelliklerden "
+                                 "birini otomatik çıkarır (remove_multicollinearity=True). "
+                                 "Lineer modellerin tahmin gücünü önemli ölçüde artırır.",
+                        )
+                    with pp_col4:
+                        st.caption(
+                            "💡 **İpucu:** Çoklu doğrusallık + Özellik Seçimi birlikte "
+                            "kullanıldığında gürültü en aza iner."
+                        )
+
+                    # Regresyon için Log Dönüşümü satırı
+                    if task_type == "regression":
+                        st.markdown("---")
+                        pp_col5, pp_col6 = st.columns(2)
+                        with pp_col5:
+                            do_log_transform = st.toggle(
+                                "📉 Hedef Log Dönüşümü (log1p)",
+                                value=False,
+                                key="pp_log_transform",
+                                help="Eğitimden önce hedef sütuna numpy.log1p() uygular. "
+                                     "Power-law / log-normal dağılımlı (sağa çarpık) hedeflerde "
+                                     "R² skorunu ciddi ölçüde artırabilir. "
+                                     "Hedef sütun tamamen pozitif değerler içermelidir.",
+                            )
+                        with pp_col6:
+                            st.caption(
+                                "💡 EDA → ‘🎯 Hedef vs Özellik’ sekmesinde "
+                                "hedef histogramı sağa çarpıksa bu seçeneği aç."
+                            )
+                    else:
+                        do_log_transform = False
+
+                    # Aktif seçenekleri bilgi olarak göster
+                    active_opts = []
+                    if do_normalize:                  active_opts.append("`normalize`")
+                    if do_remove_outliers:            active_opts.append("`remove_outliers`")
+                    if do_feature_selection:          active_opts.append("`feature_selection (n=0.8)`")
+                    if do_pca:                        active_opts.append("`pca`")
+                    if do_remove_multicollinearity:   active_opts.append("`remove_multicollinearity`")
+                    if do_log_transform:              active_opts.append("`log1p(target)`")
+                    if active_opts:
+                        st.success(f"✅ Aktif ön işleme: {', '.join(active_opts)}")
+                    else:
+                        st.info("ℹ️ Ön işleme seçilmedi — ham veri kullanılacak.")
+
+                # Seçimleri dict'e topla
+                preprocessing_opts = {
+                    "normalize":                  do_normalize,
+                    "remove_outliers":            do_remove_outliers,
+                    "feature_selection":          do_feature_selection,
+                    "pca":                        do_pca,
+                    "remove_multicollinearity":   do_remove_multicollinearity,
+                    "log_transform_target":       do_log_transform,
+                }
+
                 if st.session_state["mode"] == "expert":
                     c1, c2 = st.columns(2)
                     with c1:
@@ -345,51 +447,6 @@ with tab3:
 
                     opt_results = render_smart_hyperparams(df, target_col, dummy_train_fn)
 
-                    # Tam raporu session_state'e kaydet (implementasyon.md OUTPUT bölümü)
-                    if opt_results:
-                        st.session_state["opt_report"] = opt_results
-                        if opt_results.get("optimized"):
-                            st.session_state["smart_params"] = opt_results["optimized"]
-
-                    # Optimizasyon raporu özeti göster
-                    if st.session_state.get("opt_report"):
-                        _rep = st.session_state["opt_report"]
-                        with st.expander("📋 Optimizasyon Raporu (Tam Özet)", expanded=False):
-                            c_r1, c_r2 = st.columns(2)
-                            with c_r1:
-                                st.markdown("**📊 Veri İstatistikleri (Stats)**")
-                                st.json(_rep.get("stats", {}))
-                            with c_r2:
-                                st.markdown("**⚙️ Sezgisel Başlangıç (Heuristic)**")
-                                st.json(_rep.get("heuristic", {}))
-
-                            if _rep.get("optimized"):
-                                st.markdown("**🚀 Optimize Edilmiş Parametreler**")
-                                # Heuristic vs Optimized karşılaştırma tablosu
-                                _h = _rep.get("heuristic", {})
-                                _o = _rep.get("optimized", {})
-                                _compare_rows = []
-                                for _k in ["learning_rate", "batch_size", "regularization", "patch_size"]:
-                                    _compare_rows.append({
-                                        "Parametre": _k,
-                                        "Sezgisel (Heuristic)": _h.get(_k, "—"),
-                                        "Optimize Edilmiş": _o.get(_k, "—"),
-                                    })
-                                import pandas as _pd
-                                st.dataframe(
-                                    _pd.DataFrame(_compare_rows),
-                                    use_container_width=True,
-                                    hide_index=True,
-                                )
-
-                            _risks = _rep.get("risks", [])
-                            if _risks:
-                                st.markdown("**⚠️ Risk Raporu**")
-                                for _r in _risks:
-                                    st.warning(f"⚠️ {_r}")
-                            else:
-                                st.success("✅ Risk analizi: Belirgin risk tespit edilmedi.")
-
                 st.markdown("---")
                 if st.button("🚀 Eğitimi Başlat", key="btn_train"):
                     with st.status("Pipeline çalışıyor…", expanded=True) as status:
@@ -397,7 +454,8 @@ with tab3:
                         try:
                             setup_obj, pc_module = run_setup(
                                 df, target_col, task_type, imputation_dict,
-                                st.session_state["mode"]
+                                st.session_state["mode"],
+                                preprocessing_opts=preprocessing_opts,
                             )
                             st.session_state["setup_obj"] = setup_obj
                             st.session_state["pc_module"] = pc_module
@@ -414,7 +472,8 @@ with tab3:
                             st.write("⏳ Modeller karşılaştırılıyor…")
                             best_model, leaderboard = compare_models(
                                 task_type, selected_models,
-                                st.session_state["mode"], pc_module
+                                st.session_state["mode"], pc_module,
+                                smart_params=st.session_state.get("smart_params")
                             )
                             st.session_state["best_model"] = best_model
                             st.session_state["leaderboard"] = leaderboard
