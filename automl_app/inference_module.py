@@ -17,6 +17,10 @@ def load_model_safe(pkl_path: str, task_type: str):
     Başarısız olursa None döner.
     """
     try:
+        if not os.path.exists(pkl_path):
+            st.error(f"❌ Model dosyası bulunamadı: {pkl_path}")
+            log.error(f"Model yükleme başarısız, dosya yok: {pkl_path}")
+            return None
         model_name = pkl_path.removesuffix(".pkl") if pkl_path.endswith(".pkl") else pkl_path
         log.info(f"Model yükleniyor: {model_name} | görev: {task_type}")
         sidebar_log(f"🔄 Model yükleniyor: {os.path.basename(pkl_path)}", "info")
@@ -99,6 +103,11 @@ def run_prediction(model, df: pd.DataFrame, task_type: str) -> pd.DataFrame:
     """
     Modeli kullanarak tahmin üretir ve ham DataFrame döndürür.
     """
+    if model is None:
+        raise ValueError("Model yüklenmediği için tahmin yapılamıyor.")
+    if df is None or df.empty:
+        raise ValueError("Tahmin yapılacak veri bulunamadı.")
+        
     log.info(f"Tahmin başlıyor: {task_type}, {len(df)} satır")
     sidebar_log(f"🔮 Tahmin üretiliyor… ({len(df)} satır)", "info")
     with st.spinner("🔮 Tahminler üretiliyor…"):
@@ -111,6 +120,10 @@ def run_prediction(model, df: pd.DataFrame, task_type: str) -> pd.DataFrame:
         else:
             result = df
     log.info(f"Tahmin tamamlandı: {len(result)} satır sonucu")
+    score_col = next((c for c in ["prediction_score", "Score"] if c in result.columns), None)
+    if score_col:
+        mean_score = result[score_col].mean()
+        log.info(f"Tahmin güven skoru ortalaması: {mean_score:.4f}")
     sidebar_log(f"✅ {len(result)} tahmin üretildi", "success")
     return result
 

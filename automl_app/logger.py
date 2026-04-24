@@ -5,6 +5,7 @@ Streamlit sidebar'a yazılır.
 """
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 # ─── Log Dosyası Yolu ────────────────────────────────────────────────────────
@@ -24,7 +25,7 @@ def _build_logger() -> logging.Logger:
     logger.setLevel(logging.DEBUG)
 
     # — Dosya handler —
-    fh = logging.FileHandler(LOG_FILE, encoding="utf-8")
+    fh = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(logging.Formatter(
         "[%(asctime)s] [%(levelname)-8s] [%(module)-20s] %(message)s",

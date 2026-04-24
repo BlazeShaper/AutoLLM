@@ -15,9 +15,17 @@ from config import MAX_FILE_MB
 
 
 # ─── Veri Yükleme ────────────────────────────────────────────────────────────
+from typing import Any
 
-def load_data(uploaded_file) -> pd.DataFrame | None:
-    """CSV veya Excel dosyasını yükler; boyut ve format kontrolü yapar."""
+def load_data(uploaded_file: Any) -> pd.DataFrame | None:
+    """CSV veya Excel dosyasını yükler; boyut ve format kontrolü yapar.
+    
+    Args:
+        uploaded_file (Any): Streamlit üzerinden yüklenen dosya nesnesi.
+        
+    Returns:
+        pd.DataFrame | None: Başarıyla yüklendiğinde DataFrame, aksi halde None.
+    """
     if uploaded_file is None:
         return None
 
@@ -53,6 +61,16 @@ def load_data(uploaded_file) -> pd.DataFrame | None:
             log.error(f"{name} boş DataFrame döndürdü.")
             return None
 
+        # Bellek Optimizasyonu (Dtype Downcasting)
+        initial_mem = df.memory_usage(deep=True).sum() / 1024**2
+        for col in df.select_dtypes(include=["float64"]).columns:
+            df[col] = pd.to_numeric(df[col], downcast="float")
+        for col in df.select_dtypes(include=["int64"]).columns:
+            df[col] = pd.to_numeric(df[col], downcast="integer")
+        final_mem = df.memory_usage(deep=True).sum() / 1024**2
+        if initial_mem > final_mem:
+            log.info(f"Bellek optimize edildi: {initial_mem:.2f} MB -> {final_mem:.2f} MB")
+
         est_min = max(1, int(df.shape[0] / 10000))
         est_max = max(3, int(df.shape[0] / 5000))
         log.info(f"Veri yüklendi: {df.shape[0]} satır × {df.shape[1]} sütun")
@@ -63,8 +81,8 @@ def load_data(uploaded_file) -> pd.DataFrame | None:
         )
         return df
 
-    except Exception as e:
-        log.exception(f"Dosya okunurken beklenmeyen hata: {e}")
+    except (ValueError, OSError, pd.errors.ParserError) as e:
+        log.exception(f"Dosya okunurken hata: {e}")
         sidebar_log(f"❌ Yükleme hatası: {e}", "error")
         st.error(f"❌ Dosya okunurken hata: {e}")
         return None
@@ -95,9 +113,14 @@ def generate_profile(df: pd.DataFrame):
 # ─── Temizlik Sorunları Tespiti ──────────────────────────────────────────────
 
 def detect_cleaning_issues(df: pd.DataFrame) -> dict:
-    """
-    Sütun bazlı potansiyel sorunları döndürür.
-    Anahtar: sütun adı, Değer: {reason, action, severity}
+    """Sütun bazlı potansiyel temizlik sorunlarını tespit eder.
+    
+    Args:
+        df (pd.DataFrame): Analiz edilecek DataFrame.
+        
+    Returns:
+        dict: Sütun adlarını anahtar, sorun detaylarını ({reason, action, severity}) 
+            değer olarak içeren sözlük.
     """
     issues = {}
     num_rows = len(df)
@@ -146,7 +169,15 @@ def detect_cleaning_issues(df: pd.DataFrame) -> dict:
 # ─── Temizlik Uygulama ───────────────────────────────────────────────────────
 
 def apply_cleaning(df: pd.DataFrame, cols_to_drop: list) -> pd.DataFrame:
-    """Seçilen sütunları düşürür ve temizlenmiş kopyayı döndürür."""
+    """Seçilen sütunları düşürür ve temizlenmiş kopyayı döndürür.
+    
+    Args:
+        df (pd.DataFrame): Temizlenecek DataFrame.
+        cols_to_drop (list): Düşürülecek sütun isimleri listesi.
+        
+    Returns:
+        pd.DataFrame: İlgili sütunları çıkarılmış yeni DataFrame kopyası.
+    """
     cleaned = df.copy()
     if cols_to_drop:
         log.info(f"Temizlik uygulanıyor — çıkarılan sütunlar: {cols_to_drop}")
@@ -161,9 +192,13 @@ def apply_cleaning(df: pd.DataFrame, cols_to_drop: list) -> pd.DataFrame:
 # ─── Duplikat Kaldırma ───────────────────────────────────────────────────────
 
 def remove_duplicates(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
-    """
-    Birebir yinelenen satırları kaldırır.
-    Returns: (temizlenmiş_df, kaldırılan_satır_sayısı)
+    """Birebir yinelenen satırları kaldırır.
+    
+    Args:
+        df (pd.DataFrame): İşlenecek DataFrame.
+        
+    Returns:
+        tuple[pd.DataFrame, int]: Temizlenmiş DataFrame ve kaldırılan satır sayısı.
     """
     before = len(df)
     cleaned = df.drop_duplicates().reset_index(drop=True)
@@ -177,9 +212,13 @@ def remove_duplicates(df: pd.DataFrame) -> tuple[pd.DataFrame, int]:
 # ─── Aykırı Değer Tespiti (IQR) ─────────────────────────────────────────────
 
 def detect_outliers_iqr(df: pd.DataFrame) -> dict:
-    """
-    IQR yöntemine göre sayısal sütunlardaki aykırı değer yüzdesini hesaplar.
-    Returns: {sütun_adı: {"outlier_count": int, "outlier_pct": float, "q1": float, "q3": float}}
+    """IQR yöntemine göre sayısal sütunlardaki aykırı değer yüzdesini hesaplar.
+    
+    Args:
+        df (pd.DataFrame): Analiz edilecek DataFrame.
+        
+    Returns:
+        dict: Her sayısal sütun için aykırı değer istatistiklerini içeren sözlük.
     """
     report = {}
     numeric_cols = df.select_dtypes(include="number").columns.tolist()
@@ -210,8 +249,14 @@ def detect_outliers_iqr(df: pd.DataFrame) -> dict:
 
 
 def clip_outliers(df: pd.DataFrame, cols: list) -> pd.DataFrame:
-    """
-    Seçilen sütunlardaki aykırı değerleri IQR sınırlarına kırpar (clip).
+    """Seçilen sütunlardaki aykırı değerleri IQR sınırlarına kırpar (clip).
+    
+    Args:
+        df (pd.DataFrame): İşlenecek DataFrame.
+        cols (list): Aykırı değerleri kırpılacak sütun isimleri listesi.
+        
+    Returns:
+        pd.DataFrame: Aykırı değerleri kırpılmış yeni DataFrame kopyası.
     """
     clipped = df.copy()
     for col in cols:
@@ -255,14 +300,16 @@ def fill_missing_values(
     categorical_method: str = "mode",
     fill_value: str = "0",
 ) -> pd.DataFrame:
-    """
-    Sayısal ve kategorik sütunlardaki eksik değerleri doldurur.
+    """Sayısal ve kategorik sütunlardaki eksik değerleri doldurur.
 
-    numeric_method  : "mean" | "median" | "zero" | "sabit"
-    categorical_method: "mode" | "sabit"
-    fill_value      : "sabit" seçildiğinde kullanılacak değer (str olarak gelir,
-                       sayısal sütunlar için float dönüşümü denenir)
-    Returns: doldurulmuş DataFrame kopyası
+    Args:
+        df (pd.DataFrame): İşlenecek DataFrame.
+        numeric_method (str, optional): Sayısal sütunlar için doldurma yöntemi ("mean", "median", "zero", "sabit"). Varsayılan "mean".
+        categorical_method (str, optional): Kategorik sütunlar için doldurma yöntemi ("mode", "sabit"). Varsayılan "mode".
+        fill_value (str, optional): "sabit" yöntemi seçildiğinde kullanılacak değer. Varsayılan "0".
+
+    Returns:
+        pd.DataFrame: Eksik değerleri doldurulmuş DataFrame kopyası.
     """
     filled = df.copy()
     num_cols  = filled.select_dtypes(include="number").columns.tolist()

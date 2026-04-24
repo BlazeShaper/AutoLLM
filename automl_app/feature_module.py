@@ -6,14 +6,34 @@ Yalnızca standart kütüphane (pandas, streamlit) kullanılır — ek kurulum g
 import streamlit as st
 import pandas as pd
 import math
+from typing import List, Tuple
 
 from logger import log, sidebar_log
+
+# ─── Sabitler (Magic Numbers) ────────────────────────────────────────────────
+HIGH_CORR_THRESHOLD = 0.85
+MAX_HISTOGRAM_COLS = 12
+HISTOGRAM_BINS = 20
+MAX_BAR_CHART_COLS = 8
+TOP_VALUE_COUNTS = 15
+MAX_SCATTER_FEATURES = 6
+TOP_GROUP_MEANS = 15
 
 
 # ─── Genel EDA Özet Paneli ───────────────────────────────────────────────────
 
-def render_eda_overview(df: pd.DataFrame):
-    """Satır/sütun/eksik/duplikat metriklerini kartlarla gösterir."""
+def render_eda_overview(df: pd.DataFrame) -> None:
+    """Satır/sütun/eksik/duplikat metriklerini kartlarla gösterir.
+
+    Args:
+        df (pd.DataFrame): Özetlenecek veri seti.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
+        
     log.info("EDA genel özet paneli render ediliyor.")
     total_cells = df.shape[0] * df.shape[1]
     missing_pct = (df.isnull().sum().sum() / total_cells * 100) if total_cells else 0
@@ -36,11 +56,17 @@ def render_eda_overview(df: pd.DataFrame):
 
 # ─── Korelasyon Isı Haritası ─────────────────────────────────────────────────
 
-def render_correlation_heatmap(df: pd.DataFrame):
+def render_correlation_heatmap(df: pd.DataFrame) -> None:
+    """Sayısal sütunlar arasındaki Pearson korelasyonunu görselleştirir.
+
+    Args:
+        df (pd.DataFrame): Analiz edilecek veri seti.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
     """
-    Sayısal sütunlar arasındaki Pearson korelasyonunu
-    Streamlit'in built-in veri tablosu + renklendirme ile gösterir.
-    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
     numeric_df = df.select_dtypes(include="number")
     if numeric_df.shape[1] < 2:
         st.info("ℹ️ Korelasyon için en az 2 sayısal sütun gerekir.")
@@ -56,17 +82,17 @@ def render_correlation_heatmap(df: pd.DataFrame):
         use_container_width=True,
     )
 
-    # Yüksek korelasyonlu çiftleri bul (|r| > 0.85, çapraz hariç)
+    # Yüksek korelasyonlu çiftleri bul (|r| >= HIGH_CORR_THRESHOLD, çapraz hariç)
     high_pairs = []
     cols_list = corr.columns.tolist()
     for i, c1 in enumerate(cols_list):
         for c2 in cols_list[i + 1:]:
             val = corr.loc[c1, c2]
-            if abs(val) >= 0.85:
+            if abs(val) >= HIGH_CORR_THRESHOLD:
                 high_pairs.append((c1, c2, val))
 
     if high_pairs:
-        st.markdown("##### ⚠️ Yüksek Korelasyonlu Çiftler (|r| ≥ 0.85)")
+        st.markdown("##### ⚠️ Yüksek Korelasyonlu Çiftler (|r| ≥ {HIGH_CORR_THRESHOLD})")
         pair_df = pd.DataFrame(high_pairs, columns=["Sütun A", "Sütun B", "Korelasyon"])
         pair_df = pair_df.sort_values("Korelasyon", key=abs, ascending=False)
         st.dataframe(pair_df, use_container_width=True, hide_index=True)
@@ -75,10 +101,17 @@ def render_correlation_heatmap(df: pd.DataFrame):
 
 # ─── Sayısal Sütun Histogramları ─────────────────────────────────────────────
 
-def render_distribution_plots(df: pd.DataFrame):
+def render_distribution_plots(df: pd.DataFrame) -> None:
+    """Sayısal sütunlar için temel istatistik ve histogram grafikleri çizer.
+
+    Args:
+        df (pd.DataFrame): Analiz edilecek veri seti.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
     """
-    Sayısal sütunlar için temel istatistik + streamlit bar_chart ile histogram.
-    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
     numeric_df = df.select_dtypes(include="number")
     if numeric_df.empty:
         st.info("ℹ️ Sayısal sütun bulunamadı.")
@@ -89,9 +122,9 @@ def render_distribution_plots(df: pd.DataFrame):
 
     cols_to_plot = numeric_df.columns.tolist()
     # max 12 sütun göster
-    if len(cols_to_plot) > 12:
-        st.caption(f"İlk 12 sayısal sütun gösteriliyor ({len(cols_to_plot)} toplamda).")
-        cols_to_plot = cols_to_plot[:12]
+    if len(cols_to_plot) > MAX_HISTOGRAM_COLS:
+        st.caption(f"İlk {MAX_HISTOGRAM_COLS} sayısal sütun gösteriliyor ({len(cols_to_plot)} toplamda).")
+        cols_to_plot = cols_to_plot[:MAX_HISTOGRAM_COLS]
 
     n_cols = 3
     n_rows = math.ceil(len(cols_to_plot) / n_cols)
@@ -114,7 +147,7 @@ def render_distribution_plots(df: pd.DataFrame):
 
                 # Pandas cut ile bin hesapla → bar_chart
                 try:
-                    counts, bin_edges = pd.cut(series, bins=20, retbins=True)
+                    counts, bin_edges = pd.cut(series, bins=HISTOGRAM_BINS, retbins=True)
                     hist_df = pd.DataFrame({
                         "aralık": [f"{b:.2g}" for b in bin_edges[:-1]],
                         "adet": counts.value_counts(sort=False).values,
@@ -126,10 +159,17 @@ def render_distribution_plots(df: pd.DataFrame):
 
 # ─── Kategorik Sütun Grafikleri ──────────────────────────────────────────────
 
-def render_categorical_plots(df: pd.DataFrame):
+def render_categorical_plots(df: pd.DataFrame) -> None:
+    """Kategorik sütunlar için değer dağılımlarını bar grafiği ile gösterir.
+
+    Args:
+        df (pd.DataFrame): Analiz edilecek veri seti.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
     """
-    Kategorik sütunlar için değer sayıları (bar chart).
-    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
     cat_df = df.select_dtypes(exclude="number")
     if cat_df.empty:
         st.info("ℹ️ Kategorik sütun bulunamadı.")
@@ -139,9 +179,9 @@ def render_categorical_plots(df: pd.DataFrame):
     st.markdown("#### 🏷️ Kategorik Sütun Dağılımları")
 
     cols_to_plot = cat_df.columns.tolist()
-    if len(cols_to_plot) > 8:
-        st.caption(f"İlk 8 kategorik sütun gösteriliyor ({len(cols_to_plot)} toplamda).")
-        cols_to_plot = cols_to_plot[:8]
+    if len(cols_to_plot) > MAX_BAR_CHART_COLS:
+        st.caption(f"İlk {MAX_BAR_CHART_COLS} kategorik sütun gösteriliyor ({len(cols_to_plot)} toplamda).")
+        cols_to_plot = cols_to_plot[:MAX_BAR_CHART_COLS]
 
     n_cols = 2
     n_rows = math.ceil(len(cols_to_plot) / n_cols)
@@ -153,7 +193,7 @@ def render_categorical_plots(df: pd.DataFrame):
             if idx >= len(cols_to_plot):
                 break
             col_name = cols_to_plot[idx]
-            vc = df[col_name].value_counts().head(15)
+            vc = df[col_name].value_counts().head(TOP_VALUE_COUNTS)
 
             with grid[col_i]:
                 n_unique = df[col_name].nunique()
@@ -164,10 +204,17 @@ def render_categorical_plots(df: pd.DataFrame):
 
 # ─── Eksik Veri Isı Haritası ─────────────────────────────────────────────────
 
-def render_missing_heatmap(df: pd.DataFrame):
+def render_missing_heatmap(df: pd.DataFrame) -> None:
+    """Sütun bazında eksik veri yüzdesini gradient bar chart ile gösterir.
+
+    Args:
+        df (pd.DataFrame): Analiz edilecek veri seti.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
     """
-    Sütun bazında eksik veri yüzdesini gradient bar chart ile gösterir.
-    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
     missing = df.isnull().mean() * 100
     missing = missing[missing > 0].sort_values(ascending=False)
 
@@ -192,11 +239,21 @@ def render_missing_heatmap(df: pd.DataFrame):
 
 # ─── Hedef vs Özellik Scatter Plot ───────────────────────────────────────────
 
-def render_target_scatter(df: pd.DataFrame, target_col: str):
+def render_target_scatter(df: pd.DataFrame, target_col: str) -> None:
+    """Seçilen hedef sütun ile diğer özellikler arasındaki ilişkiyi gösterir.
+
+    Args:
+        df (pd.DataFrame): Analiz edilecek veri seti.
+        target_col (str): Hedef değişkenin sütun adı.
+        
+    Raises:
+        TypeError: Eğer df bir pandas DataFrame değilse.
+        ValueError: Eğer target_col string değilse.
     """
-    Seçilen hedef sütun ile sayısal özellikler arasındaki ilişkiyi gösterir.
-    Sayısal hedef → st.scatter_chart; Kategorik hedef → gruplu bar chart.
-    """
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError("df pd.DataFrame olmalıdır.")
+    if not isinstance(target_col, str):
+        raise ValueError("target_col string türünde olmalıdır.")
     if target_col not in df.columns:
         st.warning(f"⚠️ Hedef sütun '{target_col}' bulunamadı.")
         return
@@ -213,9 +270,9 @@ def render_target_scatter(df: pd.DataFrame, target_col: str):
     log.info(f"Scatter plot — hedef: {target_col}, özellik sayısı: {len(numeric_features)}")
     st.markdown(f"#### 🎯 Hedef: `{target_col}` vs Özellikler")
 
-    max_show = min(len(numeric_features), 6)
+    max_show = min(len(numeric_features), MAX_SCATTER_FEATURES)
     selected_features = st.multiselect(
-        "Görselleştirilecek özellikleri seçin (maks 6):",
+        "Görselleştirilecek özellikleri seçin (maks {MAX_SCATTER_FEATURES}):",
         options=numeric_features,
         default=numeric_features[:max_show],
         key="scatter_feature_select",
@@ -252,7 +309,7 @@ def render_target_scatter(df: pd.DataFrame, target_col: str):
                             plot_df.groupby(target_col)[feat]
                             .mean()
                             .sort_values(ascending=False)
-                            .head(15)
+                            .head(TOP_GROUP_MEANS)
                         )
                         st.bar_chart(
                             pd.DataFrame({"Ortalama": group_means}),

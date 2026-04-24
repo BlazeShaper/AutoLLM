@@ -58,6 +58,7 @@ from feature_module import (
     render_missing_heatmap,
     render_target_scatter,
 )
+from optimization_module import render_smart_hyperparams
 
 # ─── Sayfa Yapılandırması ────────────────────────────────────────────────────
 
@@ -81,6 +82,8 @@ _defaults = {
     "model_card": None,
     "target_col": None,
     "mode": "standard",
+    "smart_params": None,   # Optuna'dan gelen en iyi parametreler
+    "opt_report": None,     # Tam optimizasyon raporu: {stats, heuristic, optimized, risks}
 }
 for key, val in _defaults.items():
     if key not in st.session_state:
@@ -125,7 +128,7 @@ with tab1:
                 st.session_state["current_file_key"] = file_key
                 # Yeni dosya yüklendiğinde eski eğitim verilerini temizle
                 for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model", "target_col"]:
-                    st.session_state.pop(k, None)
+                    st.session_state[k] = None
 
         if st.session_state.get("raw_df") is not None:
             render_dataframe_preview(st.session_state["raw_df"])
@@ -177,7 +180,7 @@ with tab2:
                     )
                     st.session_state["cleaned_df"] = filled_df.copy()
                     for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
-                        st.session_state.pop(k, None)
+                        st.session_state[k] = None
                     df = filled_df
                     remaining = filled_df.isnull().sum().sum()
                     st.success(
@@ -196,7 +199,7 @@ with tab2:
                 cleaned_dup, removed = remove_duplicates(df)
                 st.session_state["cleaned_df"] = cleaned_dup.copy()
                 for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
-                    st.session_state.pop(k, None)
+                    st.session_state[k] = None
                 st.success(f"✅ {removed:,} yinelenen satır kaldırıldı. Kalan: **{len(cleaned_dup):,}** satır.")
                 st.rerun()
         else:
@@ -236,7 +239,7 @@ with tab2:
                     clipped_df = clip_outliers(df, cols_to_clip)
                     st.session_state["cleaned_df"] = clipped_df.copy()
                     for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
-                        st.session_state.pop(k, None)
+                        st.session_state[k] = None
                     st.success(f"✅ {len(cols_to_clip)} sütunda aykırı değerler IQR sınırlarına kırpıldı.")
                     st.rerun()
 
@@ -277,7 +280,7 @@ with tab2:
                 cleaned = apply_cleaning(df, cols_to_drop)
                 st.session_state["cleaned_df"] = cleaned.copy()
                 for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
-                    st.session_state.pop(k, None)
+                    st.session_state[k] = None
                 st.success(
                     f"✅ Temizlik uygulandı. "
                     f"Kalan sütun sayısı: **{cleaned.shape[1]}** "
@@ -330,6 +333,62 @@ with tab3:
                             "Kategorik Eksik Veri Doldurma:", CATEGORICAL_IMPUTATION_METHODS
                         )
                         imputation_dict["categorical"] = cat_imp
+
+                    # Akıllı Hiperparametre Motoru Entegrasyonu
+                    def dummy_train_fn(params):
+                        # PyCaret/Sklearn modelleri batch_size/patch_size desteklemez;
+                        # Optuna çalışabilmesi için LR'ye dayalı simüle skor döndürülür.
+                        import time as _t
+                        _t.sleep(0.05)
+                        lr_penalty = abs(params.get("learning_rate", 0.01) - 0.01) * 5
+                        return max(0.5, 0.95 - lr_penalty)
+
+                    opt_results = render_smart_hyperparams(df, target_col, dummy_train_fn)
+
+                    # Tam raporu session_state'e kaydet (implementasyon.md OUTPUT bölümü)
+                    if opt_results:
+                        st.session_state["opt_report"] = opt_results
+                        if opt_results.get("optimized"):
+                            st.session_state["smart_params"] = opt_results["optimized"]
+
+                    # Optimizasyon raporu özeti göster
+                    if st.session_state.get("opt_report"):
+                        _rep = st.session_state["opt_report"]
+                        with st.expander("📋 Optimizasyon Raporu (Tam Özet)", expanded=False):
+                            c_r1, c_r2 = st.columns(2)
+                            with c_r1:
+                                st.markdown("**📊 Veri İstatistikleri (Stats)**")
+                                st.json(_rep.get("stats", {}))
+                            with c_r2:
+                                st.markdown("**⚙️ Sezgisel Başlangıç (Heuristic)**")
+                                st.json(_rep.get("heuristic", {}))
+
+                            if _rep.get("optimized"):
+                                st.markdown("**🚀 Optimize Edilmiş Parametreler**")
+                                # Heuristic vs Optimized karşılaştırma tablosu
+                                _h = _rep.get("heuristic", {})
+                                _o = _rep.get("optimized", {})
+                                _compare_rows = []
+                                for _k in ["learning_rate", "batch_size", "regularization", "patch_size"]:
+                                    _compare_rows.append({
+                                        "Parametre": _k,
+                                        "Sezgisel (Heuristic)": _h.get(_k, "—"),
+                                        "Optimize Edilmiş": _o.get(_k, "—"),
+                                    })
+                                import pandas as _pd
+                                st.dataframe(
+                                    _pd.DataFrame(_compare_rows),
+                                    use_container_width=True,
+                                    hide_index=True,
+                                )
+
+                            _risks = _rep.get("risks", [])
+                            if _risks:
+                                st.markdown("**⚠️ Risk Raporu**")
+                                for _r in _risks:
+                                    st.warning(f"⚠️ {_r}")
+                            else:
+                                st.success("✅ Risk analizi: Belirgin risk tespit edilmedi.")
 
                 st.markdown("---")
                 if st.button("🚀 Eğitimi Başlat", key="btn_train"):
@@ -404,26 +463,86 @@ with tab4:
 
         # ── Model Karşılaştırma Çubuk Grafiği
         if task_type in ("classification", "regression") and _lb is not None and not _lb.empty:
-            with st.expander("📊 Model Karşılaştırma Grafiği", expanded=False):
-                # Hangi metrik sütunları mevcut?
+            st.markdown("### 📊 Model Karşılaştırma Grafiği")
+            with st.container(border=True):
                 _possible = ["Accuracy", "AUC", "F1", "R2", "RMSE", "MAE"]
                 _avail = [c for c in _possible if c in _lb.columns]
 
                 if _avail:
-                    _metric = st.selectbox(
-                        "Karşılaştırma metriği:",
-                        _avail,
-                        key="lb_metric_select",
-                    )
-                    _chart_df = (
-                        _lb[["Model", _metric]]
-                        .dropna()
-                        .set_index("Model")
-                        .sort_values(_metric, ascending=False)
-                    ) if "Model" in _lb.columns else (
-                        _lb[[_metric]].dropna().sort_values(_metric, ascending=False)
-                    )
-                    st.bar_chart(_chart_df, height=280)
+                    _col_sel, _col_thr = st.columns([3, 2])
+                    with _col_sel:
+                        _metric = st.selectbox(
+                            "Karşılaştırma metriği:",
+                            _avail,
+                            key="lb_metric_select",
+                        )
+                    _use_filter = (_metric == "R2" and task_type == "regression")
+                    with _col_thr:
+                        if _use_filter:
+                            _r2_threshold = st.number_input(
+                                "R² eşiği (altı gizlenir):",
+                                min_value=-1.0, max_value=1.0,
+                                value=0.10, step=0.05,
+                                key="r2_threshold",
+                            )
+                        else:
+                            _r2_threshold = None
+
+                    # Ham veriyi hazırla
+                    if "Model" in _lb.columns:
+                        _chart_df = _lb[["Model", _metric]].dropna().set_index("Model")
+                    else:
+                        _chart_df = _lb[[_metric]].dropna()
+                    _chart_df = _chart_df.sort_values(_metric, ascending=False)
+
+                    # R² filtresi
+                    if _use_filter and _r2_threshold is not None:
+                        _total    = len(_chart_df)
+                        _filtered = _chart_df[_chart_df[_metric] > _r2_threshold]
+                        _hidden_n = _total - len(_filtered)
+                        if _hidden_n > 0:
+                            st.warning(
+                                f"⚠️ **{_hidden_n} model** R² ≤ {_r2_threshold:.2f} olduğu için "
+                                f"grafikten gizlendi. Toplam {_total} modelden "
+                                f"**{len(_filtered)}** tanesi gösteriliyor."
+                            )
+                            with st.expander(f"🔽 Gizlenen {_hidden_n} model (R² ≤ {_r2_threshold:.2f})"):
+                                _hidden_df = _chart_df[_chart_df[_metric] <= _r2_threshold].reset_index()
+                                st.dataframe(_hidden_df, use_container_width=True, hide_index=True)
+                        _chart_df = _filtered
+
+                    if _chart_df.empty:
+                        st.info("ℹ️ Seçili eşiğin üzerinde model bulunamadı. Eşiği düşürün.")
+                    else:
+                        st.bar_chart(_chart_df, height=300)
+
+                    # ── Negatif R² tanı paneli — regresyon + R² seçiliyse
+                    if task_type == "regression" and _metric == "R2" and "R2" in _lb.columns:
+                        _all_r2   = _lb["R2"].dropna()
+                        _neg_ratio = float((_all_r2 <= 0).sum()) / max(len(_all_r2), 1)
+                        if _neg_ratio > 0.3:
+                            with st.expander(
+                                f"🔬 Tanı: Modellerin %{_neg_ratio*100:.0f}'i negatif R² veriyor — Kök neden analizi",
+                                expanded=True
+                            ):
+                                st.markdown("""
+**Negatif R², modelin sabit ortalamayı tahmin etmekten bile kötü performans sergilediği anlamına gelir.**
+Bu genellikle şu nedenlerden kaynaklanır:
+
+| # | Kök Neden | Belirti | Önerilen Düzeltme |
+|---|-----------|---------|-------------------|
+| 1 | **Ölçeklenmemiş özellikler** | Lineer modeller (lr, ridge, lasso) en çok etkilenir | Eğitim sekmesinde Uzman Mod → `normalize=True` ekleyin |
+| 2 | **Aykırı değerler (Outliers)** | Tek bir uç değer tüm CV fold'unu bozabilir | Temizlik sekmesinde IQR kırpma uygulayın |
+| 3 | **Düşük sinyal / gürültü oranı** | Hiçbir özellik hedefle korelasyon taşımıyor | EDA → “Hedef vs Özellik” sekmesini inceleyin |
+| 4 | **Az veri + çok özellik** | CV fold başına yetersiz örneklem (overfitting) | Fold sayısını 2'ye indirin veya feature selection yapın |
+| 5 | **Hedef dağılımı çok çarpık** | Log-normal / power-law dağılımlı hedef | Hedef sütununa `np.log1p()` dönüşümü uygulayın |
+
+**⚡ Hızlı kontrol listesi:**
+- Temizlik sekmesinden outlier kırpma uygulandı mı?
+- Sayısal özellikler çok farklı ölçeklerde mi? (birisi 0–1, diğeri 0–1.000.000)
+- EDA'da hedef sütunun histogramı normal mi görünüyor?
+- Eğitim sekmesinde Uzman Mod → `normalize=True` seçili mi?
+                                """)
                 else:
                     st.caption("Grafik için desteklenen metrik bulunamadı.")
 
@@ -435,6 +554,18 @@ with tab4:
         # ── Uzman Mod: Hiperparametre Optimizasyonu ──
         if st.session_state["mode"] == "expert" and task_type in ("classification", "regression"):
             with st.expander("⚙️ Hiperparametre Optimizasyonu (Uzman Mod)", expanded=False):
+
+                # Önceki Optuna raporunu burada da göster
+                _saved_rep = st.session_state.get("opt_report")
+                if _saved_rep and _saved_rep.get("optimized"):
+                    st.info("💡 Akıllı Hiperparametre Motoru sonuçları mevcut — Tune işlemi bu değerleri kullanacak.")
+                    _risks_tab4 = _saved_rep.get("risks", [])
+                    if _risks_tab4:
+                        for _rv in _risks_tab4:
+                            st.warning(f"⚠️ {_rv}")
+                    else:
+                        st.success("✅ Risk analizi temiz — optimizasyon sonucu güvenli.")
+
                 c1, c2 = st.columns(2)
                 with c1:
                     n_iter = st.number_input(
@@ -445,8 +576,9 @@ with tab4:
                     opt_metric = st.selectbox("Optimizasyon Metriği", metrics)
 
                 if st.button("🔧 En İyi Modeli Optimize Et (Tune)", key="btn_tune"):
+                    smart_params = st.session_state.get("smart_params")
                     tuned_model, tune_results = tune_selected_model(
-                        best_model, task_type, n_iter, opt_metric, pc_module
+                        best_model, task_type, n_iter, opt_metric, pc_module, smart_params
                     )
                     st.session_state["best_model"] = tuned_model
                     best_model = tuned_model

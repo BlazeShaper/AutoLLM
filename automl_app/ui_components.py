@@ -4,9 +4,17 @@ import pandas as pd
 
 from logger import render_sidebar_logs
 
+# ─── Sabit Metinler (Constants) ──────────────────────────────────────────────
+MODE_STANDARD_LBL = "🚀 Standart Mod"
+MODE_EXPERT_LBL = "🔬 Uzman Modu"
+MODE_TOGGLE_HELP = "Standart mod hızlıdır. Uzman mod tüm kontrolleri açar."
+REGISTRY_DEFAULT_SELECT = "— Seçin —"
+
+
 # ─── CSS Enjeksiyonu ─────────────────────────────────────────────────────────
 
 def inject_css():
+    """Uygulama geneli için özel CSS kurallarını enjekte eder."""
     st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -72,6 +80,7 @@ def inject_css():
 # ─── Header ──────────────────────────────────────────────────────────────────
 
 def render_header():
+    """Ana sayfa başlığını ve alt metnini render eder."""
     inject_css()
     st.markdown(
         """
@@ -93,15 +102,16 @@ def render_header():
 # ─── Sidebar ─────────────────────────────────────────────────────────────────
 
 def render_mode_toggle():
+    """Kullanıcı modunu (Standart/Uzman) seçmek için sidebar toggle render eder."""
     st.sidebar.markdown("## ⚙️ Uygulama Ayarları")
     st.sidebar.markdown("---")
 
     mode = st.sidebar.radio(
         "Kullanım Modu:",
-        ("🚀 Standart Mod", "🔬 Uzman Modu"),
-        help="Standart mod hızlıdır. Uzman mod tüm kontrolleri açar."
+        (MODE_STANDARD_LBL, MODE_EXPERT_LBL),
+        help=MODE_TOGGLE_HELP
     )
-    st.session_state["mode"] = "standard" if mode.startswith("🚀") else "expert"
+    st.session_state["mode"] = "standard" if mode == MODE_STANDARD_LBL else "expert"
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 📋 Pipeline Durumu")
@@ -154,11 +164,11 @@ def render_model_registry():
 
     selected = st.sidebar.selectbox(
         "Model seçin:",
-        ["— Seçin —"] + pkl_files_sorted,
+        [REGISTRY_DEFAULT_SELECT] + pkl_files_sorted,
         key="registry_select",
     )
 
-    if selected and selected != "— Seçin —":
+    if selected and selected != REGISTRY_DEFAULT_SELECT:
         full_path = os.path.join(save_dir, selected)
         card_path = full_path.replace(".pkl", "_card.json")
 
@@ -197,6 +207,7 @@ def render_model_registry():
 # ─── Step Indicator ──────────────────────────────────────────────────────────
 
 def render_step_indicator(current_step: int):
+    """Uygulama akışını gösteren yatay adım belirtecini çizer."""
     steps = ["📂 Yükleme", "🧹 Temizlik", "🧠 Eğitim", "📊 Değerlendirme", "🔮 Tahmin"]
     cols = st.columns(len(steps))
     for i, (col, step) in enumerate(zip(cols, steps)):
@@ -213,6 +224,7 @@ def render_step_indicator(current_step: int):
 # ─── Veri Önizleme ───────────────────────────────────────────────────────────
 
 def render_dataframe_preview(df: pd.DataFrame, title: str = "📋 Veri Önizleme"):
+    """Yüklenen veya temizlenen verinin özet istatistiklerini ve ilk satırlarını gösterir."""
     st.markdown(f"<p class='section-title'>{title}</p>", unsafe_allow_html=True)
 
     # Özet metrik kartları
@@ -253,4 +265,5 @@ def render_dataframe_preview(df: pd.DataFrame, title: str = "📋 Veri Önizleme
 # ─── Uyarı Banner ────────────────────────────────────────────────────────────
 
 def render_warning_banner(msg: str):
+    """Ekranda uyarı banner'ı çıkarır."""
     st.warning(msg, icon="⚠️")

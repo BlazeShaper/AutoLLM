@@ -4,3 +4,7 @@ pycaret[full]>=3.3.0
 ydata-profiling>=4.6.0
 openpyxl>=3.1.0
 xlrd>=2.0.0
+scipy>=1.11.0
+optuna>=3.6.0
+skl2onnx>=1.16.0
+onnxruntime>=1.17.0

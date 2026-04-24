@@ -3,6 +3,7 @@ import pandas as pd
 import json
 import os
 import datetime
+import time
 
 import pycaret.classification as pc_class
 import pycaret.regression as pc_reg
@@ -149,7 +150,17 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module):
         sidebar_log(f"🔄 {len(include)} model karşılaştırılıyor ({label})…", "info")
 
         with st.spinner(f"🔄 Modeller eğitiliyor ve karşılaştırılıyor… ({label})"):
-            best_model = pc_module.compare_models(include=include)
+            start_t = time.time()
+            try:
+                best_model = pc_module.compare_models(include=include)
+                if best_model is None:
+                    raise RuntimeError("PyCaret geçerli bir model eğitemedi. Veri setini kontrol edin.")
+            except Exception as e:
+                log.exception("Model karşılaştırma başarısız.")
+                st.error(f"❌ Model eğitimi sırasında hata: {e}")
+                return None, None
+            dur = time.time() - start_t
+            log.info(f"Eğitim tamamlandı. Süre: {dur:.2f} saniye")
             leaderboard = pc_module.pull()
 
         best_name = type(best_model).__name__
@@ -162,7 +173,17 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module):
     log.info(f"Kümeleme modeli oluşturuluyor: K-Means, k={num_clusters}")
     sidebar_log(f"🔄 K-Means ({num_clusters} küme) eğitiliyor…", "info")
     with st.spinner(f"🔄 K-Means modeli {num_clusters} küme ile eğitiliyor…"):
-        best_model = pc_module.create_model("kmeans", num_clusters=num_clusters)
+        start_t = time.time()
+        try:
+            best_model = pc_module.create_model("kmeans", num_clusters=num_clusters)
+            if best_model is None:
+                raise RuntimeError("Kümeleme modeli eğitilemedi.")
+        except Exception as e:
+            log.exception("Kümeleme modeli başarısız.")
+            st.error(f"❌ Kümeleme eğitimi hatası: {e}")
+            return None, None
+        dur = time.time() - start_t
+        log.info(f"Eğitim tamamlandı. Süre: {dur:.2f} saniye")
         leaderboard = pc_module.pull()
     sidebar_log("✅ Kümeleme modeli hazır", "success")
     return best_model, leaderboard
@@ -170,14 +191,40 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module):
 
 # ─── Hiperparametre Optimizasyonu ────────────────────────────────────────────
 
-def tune_selected_model(model, task_type: str, n_iter: int, optimize_metric: str, pc_module):
+def tune_selected_model(model, task_type: str, n_iter: int, optimize_metric: str, pc_module, smart_params: dict = None):
     log.info(f"Hiperparametre optimizasyonu — metrik: {optimize_metric}, iterasyon: {n_iter}")
     sidebar_log(f"⚙️ Model optimize ediliyor ({optimize_metric}, {n_iter} iterasyon)…", "info")
+    
+    custom_grid = None
+    if smart_params:
+        model_name = type(model).__name__.lower()
+        if 'logisticregression' in model_name or 'svc' in model_name:
+            custom_grid = {'C': [1.0 / smart_params.get("regularization", 1.0)]}
+        elif 'ridge' in model_name or 'lasso' in model_name or 'elasticnet' in model_name:
+            custom_grid = {'alpha': [smart_params.get("regularization", 1.0)]}
+        elif 'gbm' in model_name or 'xgboost' in model_name or 'catboost' in model_name:
+            custom_grid = {
+                'learning_rate': [smart_params.get("learning_rate", 0.01)],
+                'reg_alpha': [smart_params.get("regularization", 0.0)]
+            }
+        elif 'mlp' in model_name:
+            custom_grid = {
+                'learning_rate_init': [smart_params.get("learning_rate", 0.001)],
+                'alpha': [smart_params.get("regularization", 0.0001)],
+                'batch_size': [smart_params.get("batch_size", 32)]
+            }
+        
+        if custom_grid:
+            log.info(f"Akıllı hiperparametreler custom_grid olarak ayarlandı: {custom_grid}")
+
     with st.spinner(
         f"⚙️ Model optimize ediliyor — metrik: **{optimize_metric}**, "
         f"iterasyon: **{n_iter}** …"
     ):
-        tuned = pc_module.tune_model(model, n_iter=n_iter, optimize=optimize_metric)
+        if custom_grid:
+            tuned = pc_module.tune_model(model, custom_grid=custom_grid, n_iter=n_iter, optimize=optimize_metric)
+        else:
+            tuned = pc_module.tune_model(model, n_iter=n_iter, optimize=optimize_metric)
         results = pc_module.pull()
     log.info("Hiperparametre optimizasyonu tamamlandı.")
     sidebar_log("✅ Optimizasyon tamamlandı", "success")

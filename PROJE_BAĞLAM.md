@@ -24,6 +24,7 @@ C:\Users\ugrys\Desktop\OutoLLM\
     ├── inference_module.py  ← Model yükleme + tahmin + format ✅
     ├── ui_components.py     ← CSS + header + sidebar + registry ✅
     ├── feature_module.py    ← EDA grafikleri (NEW) ✅
+    ├── optimization_module.py ← Dinamik Hiperparametre ve Optuna (NEW) ✅
     ├── logger.py            ← Merkezi logging (NEW) ✅
     ├── requirements.txt     ← Bağımlılıklar ✅
     └── logs.log             ← Uygulama logları ✅
@@ -41,6 +42,7 @@ C:\Users\ugrys\Desktop\OutoLLM\
 | `train_module.py` | PyCaret setup/compare/tune/save/plot | `config`, `logger`, `pycaret.*`, `streamlit` |
 | `inference_module.py` | Model yükleme, uyumluluk, tahmin, format | `logger`, `pycaret.*`, `streamlit`, `os` |
 | `feature_module.py` | EDA: korelasyon, histogram, kategorik, eksik harita | `logger`, `streamlit`, `pandas`, `math` |
+| `optimization_module.py` | Optuna Bayesyen optimizasyonu ve sezgisel hiperparametre önerisi | `optuna`, `scipy.stats`, `streamlit`, `pandas`, `numpy`, `logger` |
 | `ui_components.py` | CSS, header, sidebar, step-indicator, model registry | `logger`, `streamlit`, `pandas`, `os` |
 | `app.py` | Orchestration – 6 sekme arası bağlayıcı | Diğer tüm modüller |
 
@@ -110,6 +112,8 @@ pandas>=2.0.0
 pycaret>=3.3.0
 openpyxl
 ydata-profiling  (opsiyonel)
+scipy>=1.11.0
+optuna>=3.6.0
 ```
 
 ---
@@ -124,6 +128,7 @@ ydata-profiling  (opsiyonel)
 - [x] Hızlı (standart) ve tam (uzman) model karşılaştırma
 - [x] Sınıf dengesizliği uyarısı
 - [x] Hiperparametre optimizasyonu (Uzman mod)
+- [x] Dinamik hiperparametre öneri motoru ve Optuna Bayesyen Optimizasyonu (YENİ)
 - [x] Model grafikleri (confusion matrix / residuals / feature importance / elbow / silhouette)
 - [x] .pkl + .json model card kaydetme + download
 
@@ -213,6 +218,8 @@ Uygulama: http://localhost:8501
 | 2026-04-17 | **Guard fix:** Tab 4'te `best_model is None` kontrolü eklendi | app.py |
 | 2026-04-20 | Fixed Tab 6 EDA DataFrame truth value error, added strict session_state check and st.stop() guard. Updated architecture rules. | app.py, PROJE_BAĞLAM.md |
 | 2026-04-20 | Fixed Ghost Data bug (Tab 2 to Tab 3). Enforced explicit state assignment and cleared cache. | app.py, data_module.py, PROJE_BAĞLAM.md |
+| 2026-04-21 | Tüm veri işleme ve çekirdek modüllere Google Style Docstring, tip ipuçları ve exception kontrolleri eklendi. `session_state` 'leaderboard' KeyError hatası çözüldü. | data_module.py, feature_module.py, train_module.py, inference_module.py, ui_components.py, logger.py, app.py |
+| 2026-04-21 | Optuna ve SciPy tabanlı Dinamik Hiperparametre Optimizasyon motoru entegre edildi. | optimization_module.py, app.py, requirements.txt, PROJE_BAĞLAM.md |
 
 ---
 
