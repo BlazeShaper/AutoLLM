@@ -149,6 +149,19 @@ def get_search_space(base: Dict[str, Any]) -> Dict[str, Tuple]:
 
 
 def objective(trial: optuna.Trial, base_params: Dict[str, Any], train_fn: Callable) -> float:
+    """
+    Optuna trial objective.
+
+    `params` sözlüğü make_pycaret_train_fn'den dönen _train_fn'e iletilir.
+    _train_fn bu değerleri PyCaret tune_model(custom_grid=...) formatına çevirir:
+      - learning_rate  → GBM/XGB için 'learning_rate', MLP için 'learning_rate_init'
+      - regularization → Ridge/Lasso için 'alpha', Lineer modeller için 'C' (1/reg)
+      - batch_size     → MLP için 'batch_size'
+      - epochs         → MLP için 'max_iter'
+
+    Hata metrikleri (MAE, RMSE vb.) make_pycaret_train_fn içinde negatife çevrilir;
+    bu yüz den Optuna her zaman 'maximize' yönünde çalışır.
+    """
     space = get_search_space(base_params)
     params = {
         "learning_rate":  trial.suggest_float("lr",    space["lr"][0],    space["lr"][1],    log=True),
@@ -177,6 +190,14 @@ def run_optimization(
     study = optuna.create_study(direction="maximize")
 
     log.info(f"Optuna optimizasyonu başladı ({n_trials} trial)...")
+
+    # Hata 1 Çözümü: İlk trial'ı kullanıcının belirlediği manuel parametrelerle başlat
+    study.enqueue_trial({
+        "lr": base_params.get("learning_rate"),
+        "batch": int(base_params.get("batch_size")),
+        "reg": base_params.get("regularization"),
+        "epochs": int(base_params.get("epochs"))
+    })
 
     trial_logs: list = []
 
@@ -401,56 +422,158 @@ def render_smart_hyperparams(df: pd.DataFrame, target: str, train_fn: Callable) 
 
     # ── 4. Optuna Otomatik Optimizasyon ──────────────────────────────────────
     st.markdown("---")
-    st.markdown("#### 🚀 Optuna ile Otomatik Optimizasyon")
+    st.markdown("### 🚀 Optuna ile Otomatik Optimizasyon")
     st.caption(
         "Optuna, manuel ayarladığınız değerleri başlangıç noktası olarak alarak "
         "Bayesyen arama ile en iyi kombinasyonu bulur."
     )
 
-    opt_col1, opt_col2 = st.columns([1, 2])
-    with opt_col1:
+    col_trial, col_btn = st.columns([1, 2])
+    with col_trial:
         n_trials = st.number_input(
             "Trial Sayısı",
-            min_value=5, max_value=100, value=15, step=5,
-            key="hp_n_trials",
-            help="Daha fazla trial = daha iyi optimizasyon ama daha uzun süre.",
+            min_value=5, max_value=100,
+            value=20, step=5,
+            key="optuna_n_trials",
         )
-    with opt_col2:
-        st.markdown("<br/>", unsafe_allow_html=True)
-        run_optuna = st.button("🔍 Optuna'yı Başlat", key="btn_run_optuna", use_container_width=True)
+    with col_btn:
+        run_optuna = st.button(
+            "🔍 Optuna'yı Başlat",
+            key="btn_optuna_start",
+            use_container_width=True,
+            type="primary",
+        )
 
-    if run_optuna:
+    if run_optuna and train_fn is not None:
+        optuna.logging.set_verbosity(optuna.logging.WARNING)
         sidebar_log("🚀 Optuna optimizasyonu başlatıldı...", "info")
-        st.markdown("##### 📡 Canlı Optimizasyon Logu")
-        log_placeholder = st.empty()
 
-        with st.spinner("🔄 Optuna Bayesyen Optimizasyonu çalışıyor…"):
-            best = run_optimization(
-                base_params=manual_params,
-                train_fn=train_fn,
-                n_trials=int(n_trials),
-                progress_placeholder=log_placeholder,
+        total = int(n_trials)
+
+        # ── Canlı UI elementleri ─────────────────────────────────
+        st.markdown("#### 📊 Canlı Optimizasyon Paneli")
+        progress_bar   = st.progress(0, text="⏳ Başlanıyor...")
+
+        metric_c1, metric_c2, metric_c3, metric_c4 = st.columns(4)
+        metric_trial   = metric_c1.empty()   # Şu anki trial
+        metric_best    = metric_c2.empty()   # En iyi skor
+        metric_cur     = metric_c3.empty()   # Bu trial skoru
+        metric_status  = metric_c4.empty()   # Durum
+
+        metric_trial.metric("🔢 Trial",  "0 / " + str(total))
+        metric_best.metric( "🏆 En İyi", "—")
+        metric_cur.metric(  "📌 Bu Trial", "—")
+        metric_status.metric("🟡 Durum",  "⏳ Çalışıyor")
+
+        st.markdown("##### 🖥️ Terminal Logu")
+        log_placeholder = st.empty()
+        log_lines: list = ["🚀 Optuna başlatıldı...", "─" * 50]
+        _update_log_panel(log_placeholder, log_lines)
+
+        # ── Optuna study ───────────────────────────────────────
+        study = optuna.create_study(direction="maximize")
+        study.enqueue_trial({
+            "learning_rate":  st.session_state.get("hp_lr",    0.005),
+            "batch_size":     int(st.session_state.get("hp_batch",  64)),
+            "epochs":         int(st.session_state.get("hp_epochs", 200)),
+            "regularization": st.session_state.get("hp_reg",   1.0),
+        })
+
+        best_score_so_far = None
+
+        # ── Manuel trial döngüsü (Streamlit her adımda render eder) ─────
+        for trial_idx in range(total):
+            # Tek bir trial çalıştır
+            trial = study.ask()
+            params = {
+                "learning_rate":  trial.suggest_float("learning_rate", 0.0001, 0.1, log=True),
+                "batch_size":     trial.suggest_int("batch_size", 8, 512),
+                "epochs":         trial.suggest_int("epochs", 5, 500),
+                "regularization": trial.suggest_float("regularization", 0.0001, 100.0, log=True),
+            }
+
+            try:
+                score = float(train_fn(params))
+                study.tell(trial, score)
+                is_best = (best_score_so_far is None or score > best_score_so_far)
+                if is_best:
+                    best_score_so_far = score
+                badge = " ⭐ YENİ EN İYİ!" if is_best else ""
+            except Exception as exc:
+                study.tell(trial, state=optuna.trial.TrialState.FAIL)
+                score = float("nan")
+                is_best = False
+                badge = " ❌ HATA"
+                log.warning(f"Trial {trial_idx+1} hatası: {exc}")
+
+            # ── Progress bar güncelle ─────────────────────────
+            pct = (trial_idx + 1) / total
+            progress_bar.progress(
+                pct,
+                text=f"⏳ Trial {trial_idx + 1}/{total} çalışıyor...{badge}",
             )
 
-        result_payload["optimized"] = best
-        st.session_state["smart_params"] = best
+            # ── Metrikler güncelle ───────────────────────────
+            metric_trial.metric("🔢 Trial",  f"{trial_idx + 1} / {total}")
+            metric_best.metric(
+                "🏆 En İyi",
+                f"{best_score_so_far:.4f}" if best_score_so_far is not None else "—",
+            )
+            metric_cur.metric(
+                "📌 Bu Trial",
+                f"{score:.4f}" if not (score != score) else "hata",
+                delta=f"+{score - (best_score_so_far or score):.4f}" if not is_best and not (score != score) else None,
+            )
+            metric_status.metric("🟡 Durum", "🟢 Çalışıyor" if pct < 1 else "✅ Bitti")
 
-        risks = analyze_risk(best, stats)
+            # ── Terminal logu güncelle ─────────────────────────
+            line = (
+                f"[Trial {trial_idx + 1:02d}/{total}]{badge}\n"
+                f"  Skor       : {score:.4f}"
+                + (f"  (⭐ YENİ EN İYİ)" if is_best else "")
+                + f"\n"
+                f"  lr         : {params['learning_rate']:.6f}\n"
+                f"  batch_size : {params['batch_size']}\n"
+                f"  epochs     : {params['epochs']}\n"
+                f"  reg        : {params['regularization']:.6f}\n"
+                f"  ─" * 25
+            )
+            log_lines.append(line)
+            _update_log_panel(log_placeholder, log_lines)
+
+        # ── Sonuçlar ─────────────────────────────────────────
+        best = study.best_params
+        best_score = study.best_value
+
+        progress_bar.progress(1.0, text="✅ Optimizasyon tamamlandı!")
+        metric_status.metric("🟡 Durum", "✅ Tamamlandı")
+        metric_best.metric("🏆 En İyi", f"{best_score:.4f}")
+
+        summary_lines = [
+            "─" * 50,
+            f"✅ Optimizasyon Tamamlandı!",
+            f"   En iyi skor : {best_score:.4f}",
+            f"   lr          : {best.get('learning_rate', '?'):.6f}",
+            f"   batch_size  : {best.get('batch_size', '?')}",
+            f"   epochs      : {best.get('epochs', '?')}",
+            f"   reg         : {best.get('regularization', '?'):.6f}",
+            "─" * 50,
+        ]
+        log_lines.extend(summary_lines)
+        _update_log_panel(log_placeholder, log_lines)
+
+        st.success(f"✅ Optuna tamamlandı! En iyi skor: **{best_score:.4f}**")
+        sidebar_log("✅ Optuna tamamlandı", "success")
+
+        optimized_params = {
+            **manual_params,
+            **{k: best[k] for k in best if k in manual_params},
+        }
+        st.session_state["smart_params"] = optimized_params
+        result_payload["optimized"] = optimized_params
+
+        risks = analyze_risk(optimized_params, stats)
         result_payload["risks"] = risks
-
-        st.success("✅ Optimizasyon tamamlandı! En iyi parametreler aşağıda:")
-
-        # Öneri vs Optuna karşılaştırma tablosu
-        _rows = []
-        for k in ["learning_rate", "batch_size", "patch_size", "epochs", "regularization", "bias"]:
-            _rows.append({
-                "Parametre":           k,
-                "Önerilen (Heuristic)": base.get(k, "—"),
-                "Manuel":              manual_params.get(k, "—"),
-                "Optuna (En İyi)":     best.get(k, "—"),
-            })
-        import pandas as _pd
-        st.dataframe(_pd.DataFrame(_rows), use_container_width=True, hide_index=True)
 
         if risks:
             for r in risks:
@@ -458,13 +581,24 @@ def render_smart_hyperparams(df: pd.DataFrame, target: str, train_fn: Callable) 
         else:
             st.success("✅ Optimizasyon sonrası risk analizi: Temiz.")
 
-        sidebar_log("✅ Optuna tamamlandı", "success")
+        return {
+            "optimized": optimized_params,
+            "stats":     {"best_score": best_score, "n_trials": total},
+            "risks":     risks,
+        }
 
     return result_payload
 
 
-# ─── YARDIMCI FONKSİYON ───────────────────────────────────────────────────────
+# ─── YARDIMCI FONKSİYONLAR ──────────────────────────────────────────────────
 
 def _nearest(value: float, options: list):
     """Verilen değere en yakın seçeneği döner (slider için)."""
     return min(options, key=lambda x: abs(x - value))
+
+
+def _update_log_panel(placeholder, lines: list, max_lines: int = 30):
+    """Streamlit empty placeholder'ı terminal benzeri log bloğuyla günceller."""
+    visible = lines[-max_lines:]
+    text = "\n".join(visible)
+    placeholder.code(text, language="")

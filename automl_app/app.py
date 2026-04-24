@@ -42,6 +42,7 @@ from train_module import (
     tune_selected_model,
     save_model_with_card,
     render_model_plots,
+    make_pycaret_train_fn,
 )
 from inference_module import (
     load_model_safe,
@@ -83,7 +84,9 @@ _defaults = {
     "target_col": None,
     "mode": "standard",
     "smart_params": None,   # Optuna'dan gelen en iyi parametreler
-    "opt_report": None,     # Tam optimizasyon raporu: {stats, heuristic, optimized, risks}
+    "opt_report": None,     # Tam optimizasyon raporua
+    "manual_params": None,  # Kullanıcının manuel hiper-parametreleri
+    "manual_model_selection": None,  # Kullanıcının seçtiği model listesi
 }
 for key, val in _defaults.items():
     if key not in st.session_state:
@@ -148,6 +151,20 @@ with tab2:
         st.info("ℹ️ Lütfen önce **1. Yükleme** sekmesinden veri yükleyin.")
     else:
         df = st.session_state["cleaned_df"]
+        raw_df = st.session_state["raw_df"]
+
+        # ── Ham vs Temizlenmiş Karşılaştırma ─────────────────────────────
+        st.markdown("### 📊 Veri Durumu")
+        _cmp1, _cmp2, _cmp3, _cmp4, _cmp5 = st.columns(5)
+        _cmp1.metric("🔢 Satır (Ham)",      f"{raw_df.shape[0]:,}")
+        _cmp2.metric("🔢 Satır (Güncel)",   f"{df.shape[0]:,}",
+                     delta=f"{df.shape[0] - raw_df.shape[0]:+,}" if df.shape[0] != raw_df.shape[0] else None)
+        _cmp3.metric("📋 Sütun (Ham)",      f"{raw_df.shape[1]}")
+        _cmp4.metric("📋 Sütun (Güncel)",   f"{df.shape[1]}",
+                     delta=f"{df.shape[1] - raw_df.shape[1]:+}" if df.shape[1] != raw_df.shape[1] else None)
+        _miss_pct = df.isnull().sum().sum() / max(df.shape[0] * df.shape[1], 1) * 100
+        _cmp5.metric("❓ Eksik Veri", f"{_miss_pct:.1f}%")
+        st.markdown("---")
 
         # ── Eksik veri özeti + Doldurma
         render_missing_summary(df)
@@ -234,14 +251,102 @@ with tab2:
                         unsafe_allow_html=True,
                     )
 
-            if cols_to_clip:
-                if st.button("✂️ Seçili Sütunlarda Outlier Kırp", key="btn_clip"):
-                    clipped_df = clip_outliers(df, cols_to_clip)
+            _btn_c1, _btn_c2 = st.columns(2)
+            with _btn_c1:
+                if cols_to_clip:
+                    if st.button("✂️ Seçili Sütunlarda Outlier Kırp", key="btn_clip"):
+                        clipped_df = clip_outliers(df, cols_to_clip)
+                        st.session_state["cleaned_df"] = clipped_df.copy()
+                        for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
+                            st.session_state[k] = None
+                        st.success(f"✅ {len(cols_to_clip)} sütunda aykırı değerler IQR sınırlarına kırpıldı.")
+                        st.rerun()
+            with _btn_c2:
+                if st.button(
+                    f"⚡ Tümünü Otomatik Kırp ({len(outlier_report)} sütun)",
+                    key="btn_clip_all",
+                    type="primary",
+                    help="Tüm sütunlardaki aykırı değerleri IQR yöntemiyle tek seferde kırpar.",
+                ):
+                    all_cols = list(outlier_report.keys())
+                    clipped_df = clip_outliers(df, all_cols)
                     st.session_state["cleaned_df"] = clipped_df.copy()
                     for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
                         st.session_state[k] = None
-                    st.success(f"✅ {len(cols_to_clip)} sütunda aykırı değerler IQR sınırlarına kırpıldı.")
+                    st.success(f"✅ {len(all_cols)} sütunun tamamında aykırı değerler kırpıldı!")
                     st.rerun()
+
+        st.markdown("---")
+
+        # ── 🚑 R² Kurtarma Merkezi ────────────────────────────────────────────
+        st.markdown("### 🚑 R² Kurtarma Merkezi")
+        st.caption("Model doğruluğu düşükse (R² < 0.3) bu araçlarla veriyi iyileştirin.")
+
+        with st.expander("🔬 Hedef Sütunu Dağılım Analizi (Skewness)", expanded=True):
+            import numpy as np
+            _target_saved = st.session_state.get("target_col")
+            if _target_saved and _target_saved in df.columns and pd.api.types.is_numeric_dtype(df[_target_saved]):
+                _y = df[_target_saved].dropna()
+                _skew = float(_y.skew())
+                _kurt = float(_y.kurtosis())
+
+                sk_c1, sk_c2, sk_c3 = st.columns(3)
+                sk_c1.metric("📐 Çarpıklık (Skewness)", f"{_skew:.3f}",
+                             help="0'a yakın = normal. |skew| > 1 = çarpık dağılım.")
+                sk_c2.metric("📈 Basıklık (Kurtosis)",  f"{_kurt:.3f}")
+                sk_c3.metric("📊 Min / Max",
+                             f"{_y.min():.2f} / {_y.max():.2f}")
+
+                if abs(_skew) > 1.0:
+                    st.warning(
+                        f"⚠️ Hedef sütun **{_target_saved}** çarpık dağılım gösteriyor "
+                        f"(skewness={_skew:.2f}). "
+                        "Log dönüşümü R²'yi önemli ölçüde artırabilir."
+                    )
+                    if _y.min() > 0:
+                        if st.button(
+                            f"📉 '{_target_saved}' sütununa log1p() uygula",
+                            key="btn_log1p_target",
+                            type="primary",
+                        ):
+                            log1p_df = df.copy()
+                            log1p_df[_target_saved] = np.log1p(log1p_df[_target_saved])
+                            st.session_state["cleaned_df"] = log1p_df
+                            for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
+                                st.session_state[k] = None
+                            st.success(
+                                f"✅ `np.log1p({_target_saved})` uygulandı! "
+                                "Yeni skewness: "
+                                f"**{float(log1p_df[_target_saved].skew()):.3f}**"
+                            )
+                            st.rerun()
+                    else:
+                        st.info(
+                            "ℹ️ Hedef sütun sıfır veya negatif değerler içeriyor. "
+                            "Eğitim sekmesindeki **'📉 Hedef Log Dönüşümü'** toggle'ını kullanın."
+                        )
+                else:
+                    st.success(f"✅ Hedef dağılımı normale yakın (skewness={_skew:.2f}). Log dönüşümü gerekmez.")
+            else:
+                st.info(
+                    "ℹ️ Hedef sütunu analiz için **3. Eğitim** sekmesinden hedefi seçin, "
+                    "ardından bu sekmeye geri dönün."
+                )
+
+        with st.expander("⚙️ Eğitim Sekmesi Hızlı Öneri Listesi", expanded=False):
+            st.markdown("""
+**R² = 0.1 için kanıtlanmış çözümler (Eğitim → Ön İşleme panelinden uygulayın):**
+
+| # | Öneri | Açıklama |
+|---|-------|----------|
+| 1 | ✅ **Normalize Et** | Sayısal özellikleri aynı ölçeğe getirir — lineer modeller için kritik |
+| 2 | ✅ **Aykırı Değerleri Temizle** | PyCaret'in kendi outlier temizleyicisi ek koruma sağlar |
+| 3 | ✅ **Özellik Seçimi (%80)** | Gürültülü sütunları eler, sinyal/gürültü oranını artırır |
+| 4 | ✅ **Çoklu Doğrusallığı Gider** | Korelasyonlu özellikleri temizler, lineer modelleri iyileştirir |
+| 5 | ✅ **Hedef Log Dönüşümü** | Çarpık hedef dağılımları için — yukarıda otomatik uygulayın |
+
+> 💡 **Tavsiye:** Tüm 5 seçeneği açıp "Eğitimi Başlat"a basın. Çoğu durumda R² 0.1 → 0.6+ olur.
+""")
 
         st.markdown("---")
 
@@ -279,7 +384,8 @@ with tab2:
             if st.button("🧹 Seçili Sütunları Kaldır", key="btn_clean"):
                 cleaned = apply_cleaning(df, cols_to_drop)
                 st.session_state["cleaned_df"] = cleaned.copy()
-                for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
+                # Silinen sütunlar varsa hedef sütun referansını da sıfırla
+                for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model", "target_col"]:
                     st.session_state[k] = None
                 st.success(
                     f"✅ Temizlik uygulandı. "
@@ -288,8 +394,55 @@ with tab2:
                 )
                 st.rerun()
 
+        # ── Güncel Veri Önizlemesi (her zaman en altta göster) ───────────────
+        st.markdown("---")
+        st.markdown("### 📋 Güncel Veri Önizlemesi")
+        st.caption(
+            f"Temizlik uygulandıktan sonraki veri — "
+            f"**{df.shape[0]:,} satır × {df.shape[1]} sütun**"
+        )
 
-# ══════════════════════════════════════════════════════════════════════════════
+        _prev_c1, _prev_c2 = st.columns([1, 3])
+        with _prev_c1:
+            _n_preview = st.number_input(
+                "Gösterilecek satır:",
+                min_value=5, max_value=min(500, df.shape[0]),
+                value=min(20, df.shape[0]),
+                step=5,
+                key="preview_n_rows",
+            )
+        with _prev_c2:
+            _num_cols = df.select_dtypes(include="number").columns.tolist()
+            _search_col = st.selectbox(
+                "Sütun istatistiği gör:",
+                ["— Seçin —"] + _num_cols,
+                key="preview_col_stat",
+            )
+
+        st.dataframe(df.head(int(_n_preview)), use_container_width=True)
+
+        if _search_col and _search_col != "— Seçin —":
+            _s = df[_search_col].dropna()
+            _sc1, _sc2, _sc3, _sc4, _sc5 = st.columns(5)
+            _sc1.metric("Min",    f"{_s.min():.4f}")
+            _sc2.metric("Max",    f"{_s.max():.4f}")
+            _sc3.metric("Ortalama", f"{_s.mean():.4f}")
+            _sc4.metric("Medyan", f"{_s.median():.4f}")
+            _sc5.metric("Std",    f"{_s.std():.4f}")
+
+        with st.expander("📥 Temizlenmiş Veriyi İndir", expanded=False):
+            import io as _io
+            _csv_buf = _io.StringIO()
+            df.to_csv(_csv_buf, index=False)
+            st.download_button(
+                label="⬇️ CSV olarak indir",
+                data=_csv_buf.getvalue().encode("utf-8"),
+                file_name="cleaned_data.csv",
+                mime="text/csv",
+                key="btn_download_cleaned",
+                use_container_width=True,
+            )
+
 # SEKME 3 — Model Eğitimi
 # ══════════════════════════════════════════════════════════════════════════════
 with tab3:
@@ -301,9 +454,23 @@ with tab3:
     else:
         df = st.session_state["cleaned_df"]
 
+        # Mevcut cleaned_df sütunlarını al — temizlik sonrası güncel liste
+        available_cols = list(st.session_state["cleaned_df"].columns)
+
+        # Kaydedilmiş hedef sütun artık mevcut değilse sıfırla
+        if st.session_state.get("target_col") not in available_cols:
+            st.session_state["target_col"] = None
+
+        # Dropdown index'ini güvenli hesapla — silinmiş sütun seçili kalmasın
+        _prev_target = st.session_state.get("target_col") or ""
+        _opts        = [""] + available_cols
+        _idx         = _opts.index(_prev_target) if _prev_target in _opts else 0
+
         target_col = st.selectbox(
             "🎯 Hedef (Target) Sütunu Seçin",
-            [""] + list(st.session_state["cleaned_df"].columns),
+            _opts,
+            index=_idx,
+            key="target_col_select",
             help="Tahmin etmek istediğiniz sütunu seçin. Kümeleme için boş bırakın.",
         )
 
@@ -423,6 +590,97 @@ with tab3:
                     "log_transform_target":       do_log_transform,
                 }
 
+                # ── Manuel Model Seçimi + Hiper-Parametre Paneli ─────────────────
+                with st.expander("🎛️ Manuel Model Seçimi & Hiper-Parametreler", expanded=True):
+                    st.markdown(
+                        "<small style='color:#9ca3af;'>Eğitilecek modelleri seçin ve hiperparametreleri kendiniz belirleyin.</small>",
+                        unsafe_allow_html=True,
+                    )
+
+                    # Model listesini görev tipine göre belirle
+                    _all_mdl = (
+                        ALL_CLASSIFICATION_MODELS
+                        if task_type == "classification"
+                        else ALL_REGRESSION_MODELS
+                    )
+                    _def_mdl = (
+                        ["lr", "dt", "rf", "knn", "nb"]
+                        if task_type == "classification"
+                        else ["lr", "dt", "rf", "knn", "en"]
+                    )
+
+                    _saved_sel = st.session_state.get("manual_model_selection") or []
+                    _saved_sel = [m for m in _saved_sel if m in _all_mdl]  # Geçersizleri temizle
+
+                    selected_manual_models = st.multiselect(
+                        "🤖 Eğitilecek Modeller",
+                        options=_all_mdl,
+                        default=_saved_sel if _saved_sel else _def_mdl,
+                        key="manual_model_select",
+                        help="Birden fazla model seçebilirsiniz. En iyi model otomatik belirlenir.",
+                    )
+                    if not selected_manual_models:
+                        selected_manual_models = _def_mdl
+                    st.session_state["manual_model_selection"] = selected_manual_models
+
+                    st.markdown("---")
+                    st.markdown(
+                        "<b style='color:#c7d2fe;'>⚙️ Hiper-Parametreler</b> "
+                        "<small style='color:#9ca3af;'>(MLP · GBM · XGBoost · LightGBM · CatBoost · Ridge/Lasso/ElasticNet için uygulanır)</small>",
+                        unsafe_allow_html=True,
+                    )
+
+                    _hp1, _hp2, _hp3, _hp4 = st.columns(4)
+                    with _hp1:
+                        _saved_mp = st.session_state.get("manual_params") or {}
+                        manual_epochs = st.number_input(
+                            "🔁 Epoch / max_iter",
+                            min_value=10, max_value=2000,
+                            value=int(_saved_mp.get("epochs", 200)),
+                            step=50, key="hp_epochs",
+                            help="Toplam eğitim adımı sayısı (MLP, Boosting vb.)",
+                        )
+                    with _hp2:
+                        manual_batch = st.number_input(
+                            "📦 Batch Size",
+                            min_value=4, max_value=1024,
+                            value=int(_saved_mp.get("batch_size", 32)),
+                            step=8, key="hp_batch",
+                            help="Her adımda işlenen örnek sayısı (MLP)",
+                        )
+                    with _hp3:
+                        manual_lr = st.number_input(
+                            "📈 Learning Rate",
+                            min_value=0.0001, max_value=1.0,
+                            value=float(_saved_mp.get("learning_rate", 0.01)),
+                            step=0.001, format="%.4f", key="hp_lr",
+                            help="Öğrenme hızı (Boosting, MLP, Lojistik Reg.)",
+                        )
+                    with _hp4:
+                        manual_reg = st.number_input(
+                            "🔒 Regularization",
+                            min_value=0.0, max_value=100.0,
+                            value=float(_saved_mp.get("regularization", 0.1)),
+                            step=0.01, format="%.4f", key="hp_reg",
+                            help="Düzenleştirme katsayısı (alpha, l2 vb.)",
+                        )
+
+                    manual_params = {
+                        "epochs":        int(manual_epochs),
+                        "batch_size":    int(manual_batch),
+                        "learning_rate": float(manual_lr),
+                        "regularization": float(manual_reg),
+                    }
+                    st.session_state["manual_params"] = manual_params
+
+                    # Özet kutusu
+                    st.info(
+                        f"🎛️ **Seçili modeller ({len(selected_manual_models)}):** "
+                        f"{', '.join(f'`{m}`' for m in selected_manual_models)}  \n"
+                        f"⚙️ Epoch: **{manual_epochs}** | Batch: **{manual_batch}** | "
+                        f"LR: **{manual_lr}** | Reg: **{manual_reg}**"
+                    )
+
                 if st.session_state["mode"] == "expert":
                     c1, c2 = st.columns(2)
                     with c1:
@@ -436,16 +694,73 @@ with tab3:
                         )
                         imputation_dict["categorical"] = cat_imp
 
-                    # Akıllı Hiperparametre Motoru Entegrasyonu
-                    def dummy_train_fn(params):
-                        # PyCaret/Sklearn modelleri batch_size/patch_size desteklemez;
-                        # Optuna çalışabilmesi için LR'ye dayalı simüle skor döndürülür.
-                        import time as _t
-                        _t.sleep(0.05)
-                        lr_penalty = abs(params.get("learning_rate", 0.01) - 0.01) * 5
-                        return max(0.5, 0.95 - lr_penalty)
+                    # ── Akıllı Hiperparametre Motoru — Gerçek PyCaret Entegrasyonu ──
+                    # PyCaret setup tamamlandıysa gerçek train_fn üret; yoksa güvenli fallback kullan.
+                    _pc_module_live  = st.session_state.get("pc_module")
+                    _task_type_live  = task_type  # yukarıda detect_task_type'tan gelir
 
-                    opt_results = render_smart_hyperparams(df, target_col, dummy_train_fn)
+                    # Hangi metriği optimize edeceğiz?
+                    from config import CLASSIFICATION_METRICS, REGRESSION_METRICS
+                    _default_metric = (
+                        "Accuracy" if _task_type_live == "classification" else "R2"
+                    )
+                    # Eğer Tab4'te seçilmiş bir metrik varsa onu kullan
+                    _opt_metric = st.session_state.get("_optuna_metric", _default_metric)
+
+                    if _pc_module_live is not None:
+                        # Setup tamamlandı → gerçek PyCaret train_fn
+                        from config import (
+                            ALL_CLASSIFICATION_MODELS,
+                            ALL_REGRESSION_MODELS,
+                            DEFAULT_CLASSIFICATION_MODELS,
+                            DEFAULT_REGRESSION_MODELS,
+                        )
+                        _include = (
+                            DEFAULT_CLASSIFICATION_MODELS
+                            if _task_type_live == "classification"
+                            else DEFAULT_REGRESSION_MODELS
+                        )
+                        _pycaret_train_fn = make_pycaret_train_fn(
+                            _pc_module_live, _include, _opt_metric
+                        )
+                        st.caption(
+                            f"🔗 Optuna → PyCaret entegrasyonu **aktif** "
+                            f"(metrik: `{_opt_metric}`, {len(_include)} model)"
+                        )
+
+                        # Optuna metriği için ayrı selectbox (Tab3 içinde)
+                        _metrics_list = (
+                            CLASSIFICATION_METRICS
+                            if _task_type_live == "classification"
+                            else REGRESSION_METRICS
+                        )
+                        _chosen_metric = st.selectbox(
+                            "🎯 Optuna Optimizasyon Metriği",
+                            _metrics_list,
+                            index=(_metrics_list.index(_opt_metric)
+                                   if _opt_metric in _metrics_list else 0),
+                            key="hp_optuna_metric_tab3",
+                            help="Optuna bu metriği maksimize edecek; eğer setup tamamsa "
+                                 "PyCaret leaderboard skoru ile bire bir aynı metrik kullanılır.",
+                        )
+                        # Seçimi session_state'e kaydet
+                        st.session_state["_optuna_metric"] = _chosen_metric
+
+                        # train_fn'i seçilen metriğe göre yeniden üret (metrik değişmişse)
+                        if _chosen_metric != _opt_metric:
+                            _pycaret_train_fn = make_pycaret_train_fn(
+                                _pc_module_live, _include, _chosen_metric
+                            )
+
+                        opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+
+                        # Optuna bitti ve optimized parametreler varsa session_state'e kaydet
+                        if opt_results and opt_results.get("optimized"):
+                            st.session_state["opt_report"]   = opt_results
+                            st.session_state["smart_params"] = opt_results["optimized"]
+                    else:
+                        # Hata 2 Çözümü: Setup henüz yapılmadı → fallback kullanma, sadece uyarı göster ve paneli gizle.
+                        st.warning("⚠️ Optuna için önce 'Eğitimi Başlat' butonuna basın.")
 
                 st.markdown("---")
                 if st.button("🚀 Eğitimi Başlat", key="btn_train"):
@@ -461,22 +776,52 @@ with tab3:
                             st.session_state["pc_module"] = pc_module
                             st.write("✅ Setup tamamlandı.")
 
-                            selected_models = None
-                            if st.session_state["mode"] == "expert":
-                                selected_models = (
-                                    ALL_CLASSIFICATION_MODELS
-                                    if task_type == "classification"
-                                    else ALL_REGRESSION_MODELS
-                                )
+                            # Manuel seçim yoksa mode'a göre default kullan
+                            _sel_models = st.session_state.get("manual_model_selection") or None
 
-                            st.write("⏳ Modeller karşılaştırılıyor…")
+                            st.write(f"⏳ {len(_sel_models or [])} model karşılaştırılıyor…")
                             best_model, leaderboard = compare_models(
-                                task_type, selected_models,
+                                task_type, _sel_models,
                                 st.session_state["mode"], pc_module,
-                                smart_params=st.session_state.get("smart_params")
+                                smart_params=st.session_state.get("smart_params"),
+                                manual_params=st.session_state.get("manual_params"),
                             )
                             st.session_state["best_model"] = best_model
                             st.session_state["leaderboard"] = leaderboard
+
+                            # ── Optuna (smart_params) tune adımı — SADECE expert modda
+                            _smart = st.session_state.get("smart_params")
+                            if (
+                                best_model is not None
+                                and st.session_state["mode"] == "expert"
+                                and task_type in ("classification", "regression")
+                                and _smart  # manuel tune zaten compare_models içinde yapıldı
+                            ):
+                                _tune_metric = st.session_state.get(
+                                    "_optuna_metric",
+                                    "Accuracy" if task_type == "classification" else "R2",
+                                )
+                                st.write(
+                                    f"⚙️ Optuna parametreleri tune_model'e aktarılıyor "
+                                    f"(metrik: `{_tune_metric}`)…"
+                                )
+                                try:
+                                    tuned_model, tune_lb = tune_selected_model(
+                                        best_model, task_type, n_iter=20,
+                                        optimize_metric=_tune_metric,
+                                        pc_module=pc_module,
+                                        smart_params=_smart,
+                                    )
+                                    if tuned_model is not None:
+                                        st.session_state["best_model"] = tuned_model
+                                        best_model = tuned_model
+                                        if tune_lb is not None and not tune_lb.empty:
+                                            st.session_state["leaderboard"] = tune_lb
+                                            leaderboard = tune_lb
+                                        st.write("✅ Optuna tune tamamlandı.")
+                                except Exception as _te:
+                                    log.warning(f"Optuna tune atlandı: {_te}")
+                                    st.warning(f"⚠️ Optuna tune atlandı: {_te}")
 
                             status.update(
                                 label="✅ Eğitim tamamlandı!", state="complete"

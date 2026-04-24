@@ -236,7 +236,7 @@ class _StreamCapture(io.StringIO):
         super().flush()
 
 
-def _build_live_log_lines(model_list: list, task_type: str, mode: str) -> list:
+def _build_live_log_lines(model_list: list, task_type: str, mode: str, manual_params: dict = None) -> list:
     """Eğitim başlamadan önce ne yapılacağını listeleyen log satırları."""
     lines = [
         f"🚀 **Eğitim Başlatıldı** — görev: `{task_type}`, mod: `{mode}`",
@@ -246,6 +246,14 @@ def _build_live_log_lines(model_list: list, task_type: str, mode: str) -> list:
     for m in model_list:
         lines.append(f"  ▸ `{m}`")
     lines.append("─" * 50)
+    if manual_params:
+        lines.append("🎛️ **Manuel Hiperparametreler:**")
+        lines.append(f"  • Epoch / max_iter  : {manual_params.get('epochs', '—')}")
+        lines.append(f"  • Batch Size        : {manual_params.get('batch_size', '—')}")
+        lines.append(f"  • Learning Rate     : {manual_params.get('learning_rate', '—')}")
+        lines.append(f"  • Regularization    : {manual_params.get('regularization', '—')}")
+        lines.append("  ℹ️  MLP · GBM · XGBoost · LightGBM · CatBoost için uygulanır")
+        lines.append("─" * 50)
     return lines
 
 
@@ -254,15 +262,16 @@ def render_training_live_log(
     task_type: str,
     mode: str,
     smart_params: dict = None,
+    manual_params: dict = None,
 ) -> st.empty:
     """
     Eğitim öncesinde terminale benzer bir canlı log paneli oluşturur.
     Döndürülen placeholder eğitim sırasında güncellenecektir.
     """
     placeholder = st.empty()
-    lines = _build_live_log_lines(model_list, task_type, mode)
+    lines = _build_live_log_lines(model_list, task_type, mode, manual_params)
     if smart_params:
-        lines.append("⚙️ **Aktif Hiperparametreler (Manuel/Optuna):**")
+        lines.append("⚙️ **Aktif Hiperparametreler (Optuna):**")
         for k, v in smart_params.items():
             lines.append(f"  • `{k}` = **{v}**")
         lines.append("─" * 50)
@@ -287,10 +296,44 @@ color:#94a3b8;max-height:380px;overflow-y:auto;line-height:1.6;">
 
 # ─── Model Karşılaştırma ─────────────────────────────────────────────────────
 
-def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_params: dict = None):
+def _build_manual_custom_grid(model, manual_params: dict) -> dict | None:
+    """Model tipine göre manuel parametrelerden PyCaret custom_grid oluşturur."""
+    if not manual_params:
+        return None
+    name = type(model).__name__.lower()
+    epochs  = int(manual_params.get("epochs", 200))
+    batch   = int(manual_params.get("batch_size", 32))
+    lr      = float(manual_params.get("learning_rate", 0.01))
+    reg     = float(manual_params.get("regularization", 0.1))
+
+    if "mlp" in name or "multilayer" in name:
+        return {"learning_rate_init": [lr], "alpha": [reg], "batch_size": [batch], "max_iter": [epochs]}
+    elif "xgb" in name or "xgboost" in name:
+        return {"learning_rate": [lr], "reg_alpha": [reg], "n_estimators": [epochs]}
+    elif "lgbm" in name or "lightgbm" in name:
+        return {"learning_rate": [lr], "reg_alpha": [reg], "n_estimators": [epochs]}
+    elif "catboost" in name:
+        return {"learning_rate": [lr], "l2_leaf_reg": [reg], "iterations": [epochs]}
+    elif "gradientboosting" in name or "gbr" in name or "gbc" in name:
+        return {"learning_rate": [lr], "n_estimators": [epochs]}
+    elif "adaboost" in name or "ada" in name:
+        return {"learning_rate": [lr], "n_estimators": [epochs]}
+    elif "elasticnet" in name or "ridge" in name or "lasso" in name:
+        return {"alpha": [reg], "max_iter": [epochs]}
+    elif "logisticregression" in name:
+        return {"C": [round(1.0 / max(reg, 1e-9), 6)], "max_iter": [epochs]}
+    elif "randomforest" in name or "extratrees" in name:
+        return {"n_estimators": [epochs]}
+    return None
+
+
+def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_params: dict = None, manual_params: dict = None):
     """Modelleri karşılaştırır; (best_model, leaderboard) döndürür."""
     if task_type in ("classification", "regression"):
-        if mode == "standard":
+        if selected_models:
+            include = selected_models
+            label   = "Manuel Seçim"
+        elif mode == "standard":
             include = (
                 DEFAULT_CLASSIFICATION_MODELS
                 if task_type == "classification"
@@ -306,7 +349,9 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
 
         # ── Canlı log panelini oluştur
         st.markdown("##### 📡 Canlı Eğitim Terminali")
-        log_placeholder, log_lines = render_training_live_log(include, task_type, label, smart_params)
+        log_placeholder, log_lines = render_training_live_log(
+            include, task_type, label, smart_params, manual_params
+        )
 
         start_t = time.time()
         try:
@@ -367,8 +412,35 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
             for mc in metric_cols[:3]:
                 best_val = leaderboard.iloc[0][mc]
                 log_lines.append(f"  📊 {mc}: **{best_val:.4f}**")
-        _update_log_panel(log_placeholder, log_lines)
 
+        # ── Manuel parametrelerle otomatik tune ────────────────────────
+        if manual_params:
+            custom_grid = _build_manual_custom_grid(best_model, manual_params)
+            if custom_grid:
+                log_lines.append("─" * 50)
+                log_lines.append(f"🔧 **Manuel Parametrelerle Tune Başlatıldı:** `{best_name}`")
+                for k, v in custom_grid.items():
+                    log_lines.append(f"  • `{k}` = {v}")
+                _update_log_panel(log_placeholder, log_lines)
+                try:
+                    best_model = pc_module.tune_model(
+                        best_model,
+                        custom_grid=custom_grid,
+                        n_iter=1,
+                        optimize="R2" if task_type == "regression" else "Accuracy",
+                        verbose=False,
+                    )
+                    leaderboard = pc_module.pull()
+                    log_lines.append("✅ **Manuel tune tamamlandı.**")
+                except Exception as _te:
+                    log_lines.append(f"⚠️ Manuel tune atlandı: {_te}")
+                    log.warning(f"Manuel tune hatası: {_te}")
+                _update_log_panel(log_placeholder, log_lines)
+            else:
+                log_lines.append(f"ℹ️  `{best_name}` için manuel parametre grid'i oluşturulamadı — tune atlandı.")
+                _update_log_panel(log_placeholder, log_lines)
+
+        _update_log_panel(log_placeholder, log_lines)
         log.info(f"Eğitim tamamlandı. Süre: {dur:.2f}s — En iyi model: {best_name}")
         sidebar_log(f"🏆 En iyi model: {best_name}", "success")
         return best_model, leaderboard
@@ -393,6 +465,131 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
         leaderboard = pc_module.pull()
     sidebar_log("✅ Kümeleme modeli hazır", "success")
     return best_model, leaderboard
+
+
+# ─── PyCaret Optuna Entegrasyon Köprüsü ─────────────────────────────────────
+
+def make_pycaret_train_fn(pc_module, include_models: list, optimize_metric: str):
+    """
+    Optuna'ya geçirilecek gerçek PyCaret train_fn closure'ı döndürür.
+
+    Döndürülen fonksiyon:
+      - params dict'inden learning_rate / regularization değerlerini alır,
+      - PyCaret'in mevcut (setup tamamlanmış) session'ında compare_models() çalıştırır,
+      - pull() ile leaderboard'u çeker ve optimize_metric değerini float olarak döndürür.
+
+    Bu sayede Optuna'nın gördüğü skor ile PyCaret leaderboard'undaki skor
+    birebir aynı metrik üzerinden hesaplanır (birim farkı sıfır).
+
+    Args:
+        pc_module:        pycaret.regression veya pycaret.classification modülü.
+        include_models:   compare_models(include=...) listesi.
+        optimize_metric:  PyCaret metrik adı — "R2", "Accuracy", "AUC", "F1" vb.
+
+    Returns:
+        Callable[[dict], float]
+    """
+    # Metrik sütun adını PyCaret leaderboard sütunuyla eşleştir
+    _METRIC_COL_MAP = {
+        "R2":       "R2",
+        "MAE":      "MAE",
+        "MSE":      "MSE",
+        "RMSE":     "RMSE",
+        "RMSLE":    "RMSLE",
+        "MAPE":     "MAPE",
+        "Accuracy": "Accuracy",
+        "AUC":      "AUC",
+        "F1":       "F1",
+        "Recall":   "Recall",
+        "Precision":"Precision",
+        "Kappa":    "Kappa",
+        "MCC":      "MCC",
+    }
+    # Büyük-küçük harf duyarsız arama
+    metric_col = _METRIC_COL_MAP.get(optimize_metric, optimize_metric)
+
+    # MAE/RMSE gibi hata metrikleri minimize → negatif alarak Optuna'ya maximize ettir
+    _LOWER_IS_BETTER = {"MAE", "MSE", "RMSE", "RMSLE", "MAPE"}
+    negate = optimize_metric in _LOWER_IS_BETTER
+
+    def _train_fn(params: dict) -> float:
+        """
+        Optuna trial parametrelerini içeren params dict'ini alır;
+        PyCaret compare_models() → tune_model() → pull() → metrik değeri döndürür.
+        """
+        try:
+            # Adım 1: Mevcut PyCaret session'ında en iyi modeli bul
+            best = pc_module.compare_models(
+                include=include_models,
+                sort=optimize_metric,
+                verbose=False,
+            )
+            if best is None:
+                log.warning("make_pycaret_train_fn: compare_models None döndürdü.")
+                return 0.0
+
+            # Adım 2: Model sınıf adına göre params'tan uygun custom_grid oluştur
+            model_name = type(best).__name__.lower()
+
+            if any(k in model_name for k in ("elasticnet", "ridge", "lasso")):
+                # Lineer düzenlemeli modeller → alpha, regularization'dan gelir
+                custom_grid = {"alpha": [params["regularization"]]}
+
+            elif any(k in model_name for k in ("gbm", "xgb", "lgbm", "catboost", "gradientboosting")):
+                # Gradient boosting ailesi → learning_rate + L1 cezası
+                custom_grid = {
+                    "learning_rate": [params["learning_rate"]],
+                    "reg_alpha":     [params["regularization"]],
+                }
+
+            elif "mlp" in model_name:
+                # Çok katmanlı algılayıcı → tüm hiperparametreler iletilir
+                custom_grid = {
+                    "learning_rate_init": [params["learning_rate"]],
+                    "alpha":              [params["regularization"]],
+                    "batch_size":         [int(params["batch_size"])],
+                    "max_iter":           [int(params["epochs"])],
+                }
+
+            else:
+                # Desteklenmeyen model tipi → tune atlanır, compare skoru kullanılır
+                custom_grid = None
+
+            # Adım 3 & 4: custom_grid varsa tune_model çağır, yoksa compare sonucunu kullan
+            if custom_grid is not None:
+                log.info(f"_train_fn: {model_name} tune_model çağrılıyor, grid={custom_grid}")
+                pc_module.tune_model(
+                    best,
+                    custom_grid=custom_grid,
+                    n_iter=3,                  # Trial hızını korumak için düşük iterasyon
+                    optimize=optimize_metric,
+                    verbose=False,
+                )
+                lb = pc_module.pull()          # tune_model sonrası leaderboard'u çek
+            else:
+                log.info(f"_train_fn: {model_name} için custom_grid yok, compare skoru kullanılıyor.")
+                lb = pc_module.pull()          # compare_models sonrası leaderboard'u çek
+
+            # Adım 5: Leaderboard'dan metrik değerini oku
+            if lb is None or lb.empty:
+                log.warning("make_pycaret_train_fn: pull() boş döndürdü.")
+                return 0.0
+
+            if metric_col not in lb.columns:
+                # İstenen sütun yoksa ilk sayısal sütunu fallback olarak kullan
+                num_cols = lb.select_dtypes("number").columns.tolist()
+                val = float(lb.iloc[0][num_cols[0]]) if num_cols else 0.0
+            else:
+                val = float(lb.iloc[0][metric_col])
+
+            # negate=True ise (MAE/RMSE gibi hata metrikleri) Optuna maximize için negatife çevir
+            return -val if negate else val
+
+        except Exception as exc:
+            log.warning(f"make_pycaret_train_fn._train_fn hatası: {exc}")
+            return 0.0
+
+    return _train_fn
 
 
 # ─── Hiperparametre Optimizasyonu ────────────────────────────────────────────
