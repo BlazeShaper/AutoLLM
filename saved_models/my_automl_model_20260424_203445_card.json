@@ -1,0 +1,13 @@
+{
+    "model_name": "my_automl_model",
+    "timestamp": "20260424_203445",
+    "task_type": "regression",
+    "target_col": "Marks",
+    "features": [
+        "number_courses",
+        "time_study"
+    ],
+    "pycaret_version": "3.3.2",
+    "num_rows_trained": 100,
+    "num_features": 2
+}

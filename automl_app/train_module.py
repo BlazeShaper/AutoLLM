@@ -376,14 +376,8 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
             poll_thread = threading.Thread(target=_poll_stdout, daemon=True)
             poll_thread.start()
 
-            # Model karşılaştırma
-            for i, model_id in enumerate(include, 1):
-                elapsed = time.time() - start_t
-                log_lines.append(
-                    f"⏳ [{i:02d}/{len(include):02d}] `{model_id}` eğitiliyor… "
-                    f"(toplam geçen: {elapsed:.1f}s)"
-                )
-                _update_log_panel(log_placeholder, log_lines)
+            log_lines.append(f"⏳ {len(include)} model için eşzamanlı eğitim (compare_models) başlatıldı...")
+            _update_log_panel(log_placeholder, log_lines)
 
             best_model = pc_module.compare_models(include=include)
 
@@ -405,13 +399,16 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
 
         # ── Eğitim özeti logu
         log_lines.append("─" * 50)
-        log_lines.append(f"✅ **Eğitim tamamlandı** — Süre: {dur:.2f} saniye")
+        log_lines.append(f"✅ **Eğitim tamamlandı** — Toplam Süre: {dur:.2f} saniye")
         log_lines.append(f"🏆 **En iyi model:** `{best_name}`")
+        
         if leaderboard is not None and not leaderboard.empty:
+            log_lines.append("📊 **Model Performansları (Leaderboard):**")
             metric_cols = [c for c in ["Accuracy", "AUC", "F1", "R2", "RMSE", "MAE"] if c in leaderboard.columns]
-            for mc in metric_cols[:3]:
-                best_val = leaderboard.iloc[0][mc]
-                log_lines.append(f"  📊 {mc}: **{best_val:.4f}**")
+            
+            for idx, row in leaderboard.iterrows():
+                metrics_str = " | ".join([f"{mc}: {row[mc]:.4f}" for mc in metric_cols[:3]])
+                log_lines.append(f"  ▸ `{idx}` ➔ {metrics_str}")
 
         # ── Manuel parametrelerle otomatik tune ────────────────────────
         if manual_params:

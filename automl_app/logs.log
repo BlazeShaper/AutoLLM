@@ -32016,3 +32016,373 @@ Alternately, you can install this by running `pip install pycaret[models]`
 [2026-04-24 19:29:56] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
 [2026-04-24 19:29:56] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
 [2026-04-24 19:29:56] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:31:30] [INFO    ] [data_module         ] Dosya yükleme başladı: student_marks.csv (1.6 KB)
+[2026-04-24 20:31:30] [INFO    ] [data_module         ] Bellek optimize edildi: 0.00 MB -> 0.00 MB
+[2026-04-24 20:31:30] [INFO    ] [data_module         ] Veri yüklendi: 100 satır × 3 sütun
+[2026-04-24 20:31:30] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:31:30] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:31:30] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:31:31] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:31:34] [INFO    ] [data_module         ] Profil raporu oluşturuluyor (minimal mod)...
+[2026-04-24 20:31:37] [INFO    ] [data_module         ] Profil raporu tamamlandı.
+[2026-04-24 20:31:37] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:31:37] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:31:37] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:31:37] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:09] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:32:09] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:32:09] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:32:09] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:11] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:32:11] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:32:11] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:32:11] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:23] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:32:23] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:32:23] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:32:23] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:43] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:32:43] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:32:43] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:32:43] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:48] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:32:48] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:32:48] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:32:49] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:32:58] [INFO    ] [train_module        ] Dinamik fold sayısı: 3 (veri boyutu: 100 satır)
+[2026-04-24 20:32:58] [INFO    ] [train_module        ] PyCaret setup başlıyor — görev: regression, hedef: Marks, mod: expert, ön işleme: yok
+[2026-04-24 20:33:04] [INFO    ] [train_module        ] Setup tamamlandı: regression
+[2026-04-24 20:33:04] [INFO    ] [train_module        ] Model karşılaştırması başlıyor — regression | Manuel Seçim | 5 model
+[2026-04-24 20:33:21] [INFO    ] [train_module        ] Eğitim tamamlandı. Süre: 15.56s — En iyi model: RandomForestRegressor
+[2026-04-24 20:33:23] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:33:23] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:33:23] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:33:23] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:34:15] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:34:15] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:34:15] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:34:16] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:34:16] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:34:16] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:34:16] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:34:19] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:34:19] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:34:19] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:34:21] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:34:21] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:34:21] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:34:21] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:34:44] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:34:44] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:34:44] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:34:45] [INFO    ] [train_module        ] Model kaydediliyor: C:\Users\ugrys\Desktop\OutoLLM\saved_models\my_automl_model_20260424_203445
+[2026-04-24 20:34:46] [INFO    ] [train_module        ] Model kaydı tamamlandı: C:\Users\ugrys\Desktop\OutoLLM\saved_models\my_automl_model_20260424_203445.pkl
+[2026-04-24 20:34:46] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:34:46] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:34:46] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:34:46] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:34:55] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:34:55] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:34:55] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:34:56] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:34:57] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:34:57] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:34:57] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:35:19] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:35:19] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:35:19] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:35:20] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:35:20] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:35:20] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:35:21] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:35:40] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:35:40] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:35:40] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:35:41] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:35:41] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:35:41] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:35:42] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:35:44] [INFO    ] [optimization_module ] Veri seti analizi başlatıldı. Hedef: Marks
+[2026-04-24 20:35:44] [INFO    ] [optimization_module ] Veri analizi tamamlandı: {'n_rows': 100, 'n_features': 2, 'skewness_mean': 0.0657503753900528, 'kurtosis_mean': -1.2627344131469727, 'sparsity': 0.0, 'corr_mean': 0.6797942331764624, 'corr_max': 0.9422538890011937}
+[2026-04-24 20:35:44] [ERROR   ] [app                 ] Tab3 beklenmeyen hata: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+Traceback (most recent call last):
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\app.py", line 755, in <module>
+    opt_results = render_smart_hyperparams(df, target_col, _pycaret_train_fn)
+  File "C:\Users\ugrys\Desktop\OutoLLM\automl_app\optimization_module.py", line 351, in render_smart_hyperparams
+    manual_lr = st.select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\metrics_util.py", line 397, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 224, in select_slider
+    return self._select_slider(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\elements\widgets\select_slider.py", line 317, in _select_slider
+    widget_state = register_widget(
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 163, in register_widget
+    return register_widget_from_metadata(metadata, ctx, widget_func_name, element_type)
+  File "C:\Users\ugrys\AppData\Local\Programs\Python\Python310\lib\site-packages\streamlit\runtime\state\widgets.py", line 196, in register_widget_from_metadata
+    raise DuplicateWidgetID(
+streamlit.errors.DuplicateWidgetID: There are multiple widgets with the same `key='hp_lr'`.
+
+To fix this, please make sure that the `key` argument is unique for each
+widget you create.
+[2026-04-24 20:35:45] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:35:45] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:35:45] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:35:45] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:03] [INFO    ] [data_module         ] Dosya yükleme başladı: countries.csv (22.0 KB)
+[2026-04-24 20:36:03] [INFO    ] [data_module         ] Bellek optimize edildi: 0.07 MB -> 0.06 MB
+[2026-04-24 20:36:03] [INFO    ] [data_module         ] Veri yüklendi: 188 satır × 21 sütun
+[2026-04-24 20:36:03] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:03] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:03] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:04] [INFO    ] [feature_module      ] Kategorik grafikler: 4 sütun
+[2026-04-24 20:36:04] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:20] [INFO    ] [data_module         ] Eksik veri doldurma tamamlandı: 181 hücre dolduruldu (sayısal=mean, kategorik=mode)
+[2026-04-24 20:36:20] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:20] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:20] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:20] [INFO    ] [feature_module      ] Kategorik grafikler: 4 sütun
+[2026-04-24 20:36:20] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:22] [INFO    ] [data_module         ] Aykırı değer kırpma uygulandı: ['Population (millions)', 'Cropland Footprint', 'Grazing Footprint', 'Forest Footprint', 'Carbon Footprint', 'Fish Footprint', 'Total Ecological Footprint', 'Cropland', 'Grazing Land', 'Forest Land', 'Fishing Water', 'Urban Land', 'Total Biocapacity', 'Biocapacity Deficit or Reserve', 'Earths Required', 'Countries Required']
+[2026-04-24 20:36:23] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:23] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:23] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:23] [INFO    ] [feature_module      ] Kategorik grafikler: 4 sütun
+[2026-04-24 20:36:23] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:25] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:25] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:25] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:26] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:26] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:26] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:26] [INFO    ] [feature_module      ] Kategorik grafikler: 4 sütun
+[2026-04-24 20:36:26] [INFO    ] [data_module         ] Temizlik uygulanıyor — çıkarılan sütunlar: ['Country', 'GDP per Capita']
+[2026-04-24 20:36:26] [INFO    ] [data_module         ] Temizlik sonrası: 188 satır × 19 sütun
+[2026-04-24 20:36:26] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:27] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:27] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:27] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:36:27] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:45] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:45] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:45] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:46] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:36:46] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:36:46] [INFO    ] [data_module         ] Aykırı değer kırpma uygulandı: ['Urban Land']
+[2026-04-24 20:36:46] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:36:46] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:36:46] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:36:46] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:36:46] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:37:01] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:37:01] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:37:01] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:37:01] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:37:01] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:37:04] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:37:04] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:37:04] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:37:04] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:37:04] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:37:07] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:37:07] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:37:07] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:37:08] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:37:08] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:37:10] [INFO    ] [train_module        ] Dinamik fold sayısı: 3 (veri boyutu: 188 satır)
+[2026-04-24 20:37:10] [INFO    ] [train_module        ] PyCaret setup başlıyor — görev: regression, hedef: Population (millions), mod: standard, ön işleme: yok
+[2026-04-24 20:37:13] [INFO    ] [train_module        ] Setup tamamlandı: regression
+[2026-04-24 20:37:13] [INFO    ] [train_module        ] Model karşılaştırması başlıyor — regression | Manuel Seçim | 5 model
+[2026-04-24 20:37:17] [INFO    ] [train_module        ] Eğitim tamamlandı. Süre: 2.06s — En iyi model: RandomForestRegressor
+[2026-04-24 20:37:19] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:37:19] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 17 sayısal sütun
+[2026-04-24 20:37:19] [INFO    ] [feature_module      ] Dağılım grafikleri: 17 sütun
+[2026-04-24 20:37:19] [INFO    ] [feature_module      ] Kategorik grafikler: 2 sütun
+[2026-04-24 20:37:19] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:40] [INFO    ] [data_module         ] Dosya yükleme başladı: student_marks.csv (1.6 KB)
+[2026-04-24 20:44:40] [INFO    ] [data_module         ] Bellek optimize edildi: 0.00 MB -> 0.00 MB
+[2026-04-24 20:44:40] [INFO    ] [data_module         ] Veri yüklendi: 100 satır × 3 sütun
+[2026-04-24 20:44:41] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:41] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:41] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:41] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:45] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:45] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:45] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:45] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:49] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:49] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:49] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:49] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:50] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:50] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:50] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:51] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:44:51] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:44:51] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:44:54] [INFO    ] [train_module        ] Dinamik fold sayısı: 3 (veri boyutu: 100 satır)
+[2026-04-24 20:44:54] [INFO    ] [train_module        ] PyCaret setup başlıyor — görev: regression, hedef: Marks, mod: standard, ön işleme: ['normalize', 'remove_outliers', 'feature_selection', 'pca', 'remove_multicollinearity']
+[2026-04-24 20:44:59] [INFO    ] [train_module        ] Setup tamamlandı: regression
+[2026-04-24 20:44:59] [INFO    ] [train_module        ] Model karşılaştırması başlıyor — regression | Manuel Seçim | 5 model
+[2026-04-24 20:45:15] [INFO    ] [train_module        ] Eğitim tamamlandı. Süre: 16.06s — En iyi model: LinearRegression
+[2026-04-24 20:45:17] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:45:17] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:45:17] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:45:17] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:46:43] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:46:43] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:46:43] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:46:43] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
+[2026-04-24 20:46:45] [INFO    ] [train_module        ] Dinamik fold sayısı: 3 (veri boyutu: 100 satır)
+[2026-04-24 20:46:45] [INFO    ] [train_module        ] PyCaret setup başlıyor — görev: regression, hedef: Marks, mod: standard, ön işleme: yok
+[2026-04-24 20:46:47] [INFO    ] [train_module        ] Setup tamamlandı: regression
+[2026-04-24 20:46:47] [INFO    ] [train_module        ] Model karşılaştırması başlıyor — regression | Manuel Seçim | 5 model
+[2026-04-24 20:46:51] [INFO    ] [train_module        ] Eğitim tamamlandı. Süre: 1.58s — En iyi model: RandomForestRegressor
+[2026-04-24 20:46:52] [INFO    ] [feature_module      ] EDA genel özet paneli render ediliyor.
+[2026-04-24 20:46:52] [INFO    ] [feature_module      ] Korelasyon hesaplanıyor: 3 sayısal sütun
+[2026-04-24 20:46:52] [INFO    ] [feature_module      ] Dağılım grafikleri: 3 sütun
+[2026-04-24 20:46:52] [INFO    ] [app                 ] EDA sekmesi render tamamlandı.
