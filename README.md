@@ -5,7 +5,7 @@
 
 ---
 
-**AutoLLM** (eski adıyla OutoLLM), verilerinizi yükleyip saniyeler içinde profesyonel makine öğrenmesi modelleri oluşturmanızı sağlayan **Streamlit** ve **PyCaret** tabanlı Türkçe bir web uygulamasıdır. Veri bilimci olmanıza gerek kalmadan; veri temizliğinden keşifçi veri analizine (EDA), model eğitiminden tahmin (inference) aşamasına kadar tüm makine öğrenmesi süreçlerini 6 basit sekmede yönetebilirsiniz.
+**AutoLLM**, verilerinizi yükleyip saniyeler içinde profesyonel makine öğrenmesi modelleri oluşturmanızı sağlayan **Streamlit** ve **PyCaret** tabanlı Türkçe bir web uygulamasıdır. Veri bilimci olmanıza gerek kalmadan; veri temizliğinden keşifçi veri analizine (EDA), model eğitiminden tahmin (inference) aşamasına kadar tüm makine öğrenmesi süreçlerini 6 basit sekmede yönetebilirsiniz.
 
 ## ✨ Öne Çıkan Özellikler
 
