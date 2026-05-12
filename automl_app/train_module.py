@@ -349,6 +349,7 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
 
         # ── Canlı log panelini oluştur
         st.markdown("##### 📡 Canlı Eğitim Terminali")
+        progress_bar = st.progress(0)
         log_placeholder, log_lines = render_training_live_log(
             include, task_type, label, smart_params, manual_params
         )
@@ -363,7 +364,24 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
 
             def _poll_stdout():
                 """Arka planda stdout'u izler ve log panelini günceller."""
+                from streamlit.runtime.scriptrunner import add_script_run_ctx, get_script_run_ctx
+                try:
+                    ctx = get_script_run_ctx()
+                    if ctx:
+                        add_script_run_ctx(threading.current_thread(), ctx)
+                except Exception:
+                    pass
+
+                curr_prog = 0.0
                 while getattr(_poll_stdout, "running", True):
+                    curr_prog += 0.02
+                    if curr_prog > 0.90:
+                        curr_prog = 0.90
+                    try:
+                        progress_bar.progress(curr_prog)
+                    except Exception:
+                        pass
+
                     new_items = captured_lines[:]
                     if new_items:
                         for item in new_items:
@@ -394,21 +412,40 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
             return None, None
 
         dur = time.time() - start_t
+        try:
+            progress_bar.progress(1.0)
+        except Exception:
+            pass
+            
         leaderboard = pc_module.pull()
         best_name = type(best_model).__name__
+        
+        num_models = len(include)
+        avg_time = dur / num_models if num_models > 0 else dur
 
         # ── Eğitim özeti logu
         log_lines.append("─" * 50)
-        log_lines.append(f"✅ **Eğitim tamamlandı** — Toplam Süre: {dur:.2f} saniye")
-        log_lines.append(f"🏆 **En iyi model:** `{best_name}`")
+        log_lines.append(f"✅ **Eğitim tamamlandı**")
+        log_lines.append(f"⏱️ **Ortalama model süresi:** {avg_time:.2f} sn")
         
         if leaderboard is not None and not leaderboard.empty:
-            log_lines.append("📊 **Model Performansları (Leaderboard):**")
+            log_lines.append("─" * 50)
+            log_lines.append("📊 **Model Performansları (Cross-Validation Ortalaması):**")
             metric_cols = [c for c in ["Accuracy", "AUC", "F1", "R2", "RMSE", "MAE"] if c in leaderboard.columns]
             
             for idx, row in leaderboard.iterrows():
                 metrics_str = " | ".join([f"{mc}: {row[mc]:.4f}" for mc in metric_cols[:3]])
-                log_lines.append(f"  ▸ `{idx}` ➔ {metrics_str}")
+                log_lines.append(f"  ▸ `{idx}`")
+                log_lines.append(f"     {metrics_str}")
+                
+            log_lines.append("─" * 50)
+            log_lines.append("🏆 **EN İYİ MODEL**")
+            log_lines.append(f"Model: {best_name}")
+            if len(metric_cols) > 0:
+                best_metric = metric_cols[0]
+                best_val = leaderboard.iloc[0][best_metric]
+                log_lines.append(f"{best_metric}: {best_val:.4f}")
+            log_lines.append(f"Toplam Süre: {dur:.2f} sn")
 
         # ── Manuel parametrelerle otomatik tune ────────────────────────
         if manual_params:
@@ -440,6 +477,11 @@ def compare_models(task_type: str, selected_models, mode: str, pc_module, smart_
         _update_log_panel(log_placeholder, log_lines)
         log.info(f"Eğitim tamamlandı. Süre: {dur:.2f}s — En iyi model: {best_name}")
         sidebar_log(f"🏆 En iyi model: {best_name}", "success")
+        
+        if leaderboard is not None and not leaderboard.empty:
+            st.markdown("#### 🏆 Leaderboard Tablosu")
+            st.dataframe(leaderboard, use_container_width=True)
+            
         return best_model, leaderboard
 
     # ── Clustering ────────────────────────────────────────────────────────────

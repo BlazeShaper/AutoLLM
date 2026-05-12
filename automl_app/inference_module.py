@@ -108,6 +108,24 @@ def run_prediction(model, df: pd.DataFrame, task_type: str) -> pd.DataFrame:
     if df is None or df.empty:
         raise ValueError("Tahmin yapılacak veri bulunamadı.")
         
+    from data_module import clean_columns
+    df = clean_columns(df)
+    
+    # ── Feature Schema Validation ──
+    if hasattr(model, "feature_names_in_"):
+        expected_features = list(model.feature_names_in_)
+        missing = set(expected_features) - set(df.columns)
+        extra = set(df.columns) - set(expected_features)
+        
+        if missing:
+            raise ValueError(f"Missing features: {missing}")
+            
+        if extra:
+            st.warning(f"Extra columns will be ignored: {extra}")
+            
+        df = df[expected_features]
+        log.info("✔ Feature schema validated — prediction is safe")
+        
     log.info(f"Tahmin başlıyor: {task_type}, {len(df)} satır")
     sidebar_log(f"🔮 Tahmin üretiliyor… ({len(df)} satır)", "info")
     with st.spinner("🔮 Tahminler üretiliyor…"):

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env
+
+# Logs
+*.log
+logs/
+
+# Model files (büyük binary dosyalar — istenirse kaldırılabilir)
+saved_models/
+automl_app/saved_models/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# PyCaret / MLflow artifacts
+mlruns/

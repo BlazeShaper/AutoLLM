@@ -25,6 +25,7 @@ from ui_components import (
 )
 from data_module import (
     load_data,
+    clean_columns,
     generate_profile,
     detect_cleaning_issues,
     apply_cleaning,
@@ -58,6 +59,7 @@ from feature_module import (
     render_categorical_plots,
     render_missing_heatmap,
     render_target_scatter,
+    render_storytelling_dashboard,
 )
 from optimization_module import render_smart_hyperparams
 
@@ -87,6 +89,7 @@ _defaults = {
     "opt_report": None,     # Tam optimizasyon raporua
     "manual_params": None,  # Kullanıcının manuel hiper-parametreleri
     "manual_model_selection": None,  # Kullanıcının seçtiği model listesi
+    "profile_html": None,            # Oluşturulan profil raporu HTML içeriği
 }
 for key, val in _defaults.items():
     if key not in st.session_state:
@@ -138,7 +141,20 @@ with tab1:
 
             st.markdown("---")
             if st.button("📊 Hızlı Profil Raporu Oluştur", key="btn_profile"):
-                generate_profile(st.session_state["raw_df"])
+                html_content = generate_profile(st.session_state["raw_df"])
+                if html_content:
+                    st.session_state["profile_html"] = html_content
+
+            # Profil daha önce oluşturulduysa indirme butonunu göster
+            if st.session_state.get("profile_html"):
+                st.download_button(
+                    label="⬇️ Profil Raporunu İndir (.html)",
+                    data=st.session_state["profile_html"].encode("utf-8"),
+                    file_name="veri_profili.html",
+                    mime="text/html",
+                    key="btn_download_profile",
+                    use_container_width=True,
+                )
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEKME 2 — Veri Temizliği
@@ -392,6 +408,28 @@ with tab2:
                     f"Kalan sütun sayısı: **{cleaned.shape[1]}** "
                     f"(çıkarılan: **{len(cols_to_drop)}**)"
                 )
+                st.rerun()
+
+        # ── Manuel Sütun Silme
+        st.markdown("### 🗑️ Manuel Sütun Silme")
+        st.caption("Veri setinden çıkarmak istediğiniz sütunları seçin.")
+        
+        cols_to_manually_drop = st.multiselect(
+            "Kaldırılacak sütunlar:",
+            options=list(df.columns),
+            key="manual_col_drop_select"
+        )
+        if cols_to_manually_drop:
+            if st.button(f"🗑️ Seçili {len(cols_to_manually_drop)} Sütunu Kaldır", key="btn_manual_drop"):
+                cleaned = df.drop(columns=cols_to_manually_drop)
+                st.session_state["cleaned_df"] = cleaned.copy()
+                for k in ["setup_obj", "pc_module", "task_type", "leaderboard", "best_model"]:
+                    st.session_state[k] = None
+                
+                if st.session_state.get("target_col") in cols_to_manually_drop:
+                    st.session_state["target_col"] = None
+                    
+                st.success(f"✅ Seçilen {len(cols_to_manually_drop)} sütun başarıyla kaldırıldı.")
                 st.rerun()
 
         # ── Güncel Veri Önizlemesi (her zaman en altta göster) ───────────────
@@ -767,6 +805,11 @@ with tab3:
                     with st.status("Pipeline çalışıyor…", expanded=True) as status:
                         st.write("⏳ PyCaret setup başlatılıyor…")
                         try:
+                            # 1. Standardize features before training
+                            df = clean_columns(df)
+                            import re
+                            target_col = re.sub(r"[^\w]", "", target_col.strip().lower().replace(" ", "_"))
+                            
                             setup_obj, pc_module = run_setup(
                                 df, target_col, task_type, imputation_dict,
                                 st.session_state["mode"],
@@ -1139,13 +1182,14 @@ with tab6:
 
         st.markdown("---")
 
-        # ── Sekmeli EDA bölümleri (5 sekme)
-        eda_tab1, eda_tab2, eda_tab3, eda_tab4, eda_tab5 = st.tabs([
+        # ── Sekmeli EDA bölümleri (6 sekme)
+        eda_tab1, eda_tab2, eda_tab3, eda_tab4, eda_tab5, eda_tab6 = st.tabs([
             "🔥 Korelasyon",
             "📈 Sayısal Dağılımlar",
             "🏷️ Kategorik Dağılımlar",
             "❓ Eksik Veri Haritası",
             "🎯 Hedef vs Özellik",
+            "🚀 Story Dashboard",
         ])
 
         with eda_tab1:
@@ -1175,5 +1219,63 @@ with tab6:
             else:
                 st.info("ℹ️ Scatter grafikleri için bir hedef sütun seçin.")
 
+        with eda_tab6:
+            st.markdown("### 🚀 Story-Driven EDA Dashboard")
+            st.caption("Otomatik ceiling effect, zero-segment ve pairplot analizi.")
+
+            _num_cols_eda  = _eda_df.select_dtypes(include="number").columns.tolist()
+            _cat_cols_eda  = _eda_df.select_dtypes(exclude="number").columns.tolist()
+
+            _sd_c1, _sd_c2 = st.columns(2)
+            with _sd_c1:
+                _story_target = st.selectbox(
+                    "Hedef sütun (opsiyonel):",
+                    ["— Yok —"] + _num_cols_eda,
+                    key="story_target_col",
+                )
+                _story_target = None if _story_target == "— Yok —" else _story_target
+
+                _ceil_candidates = [
+                    c for c in _num_cols_eda
+                    if (_eda_df[c] == _eda_df[c].max()).mean() > 0.05
+                ]
+                _ceiling_sel = st.multiselect(
+                    "🚨 Ceiling effect analizi (otomatik tespit edildi):",
+                    options=_num_cols_eda,
+                    default=_ceil_candidates[:3],
+                    key="story_ceiling_cols",
+                )
+
+            with _sd_c2:
+                _zero_candidates = [
+                    c for c in _num_cols_eda
+                    if (_eda_df[c] == 0).sum() > 0 and c != _story_target
+                ]
+                _zero_sel = st.multiselect(
+                    "🔬 Zero-segment analizi:",
+                    options=_num_cols_eda,
+                    default=_zero_candidates[:2],
+                    key="story_zero_cols",
+                )
+                _pair_default = _num_cols_eda[:min(4, len(_num_cols_eda))]
+                _pair_sel = st.multiselect(
+                    "📐 Pairplot değişkenleri:",
+                    options=_num_cols_eda,
+                    default=_pair_default,
+                    key="story_pair_cols",
+                )
+
+            if st.button("▶ Dashboard'u Oluştur", key="btn_story_dashboard", use_container_width=True):
+                render_storytelling_dashboard(
+                    _eda_df,
+                    target_col=_story_target,
+                    ceiling_cols=_ceiling_sel or None,
+                    zero_seg_cols=_zero_sel or None,
+                    pairplot_cols=_pair_sel or None,
+                )
+            else:
+                st.info("ℹ️ Ayarları yapıp '▶ Dashboard'u Oluştur' butonuna basın.")
+
         log.info("EDA sekmesi render tamamlandı.")
         sidebar_log("🔍 EDA analizi görüntülendi", "info")
+

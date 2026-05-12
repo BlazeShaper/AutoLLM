@@ -23,27 +23,27 @@ def inject_css():
         font-family: 'Inter', sans-serif;
     }
 
-    /* Kart stili */
+    /* Kart stili — tek ton, gradyan yok */
     .metric-card {
-        background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3e 100%);
-        border: 1px solid rgba(100, 108, 255, 0.3);
-        border-radius: 12px;
-        padding: 1rem 1.25rem;
+        background: #1e1e2e;
+        border: 1px solid #2d2d3f;
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
         text-align: center;
         margin-bottom: 0.5rem;
     }
     .metric-card h3 {
-        color: #a0a0c0;
-        font-size: 0.75rem;
+        color: #9ca3af;
+        font-size: 0.72rem;
         font-weight: 500;
         text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 0.25rem;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.2rem;
     }
     .metric-card p {
-        color: #e0e0ff;
-        font-size: 1.5rem;
-        font-weight: 700;
+        color: #e5e7eb;
+        font-size: 1.4rem;
+        font-weight: 600;
         margin: 0;
     }
 
@@ -52,26 +52,25 @@ def inject_css():
     .step-active { color: #818cf8; font-weight: 700; font-size: 1.05rem; }
     .step-wait   { color: #6b7280; }
 
-    /* Section başlığı */
+    /* Section başlığı — sadece sol çizgi, renk nötr */
     .section-title {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 600;
-        color: #c7d2fe;
-        border-left: 4px solid #6366f1;
-        padding-left: 0.6rem;
-        margin: 1rem 0 0.5rem;
+        color: #d1d5db;
+        border-left: 3px solid #6366f1;
+        padding-left: 0.55rem;
+        margin: 0.75rem 0 0.4rem;
     }
 
-    /* Genel buton genişletme */
+    /* Buton — gölge kaldırıldı, yalnızca hafif yükselme */
     div.stButton > button {
         width: 100%;
-        border-radius: 8px;
-        font-weight: 600;
-        transition: all 0.2s ease;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: transform 0.15s ease;
     }
     div.stButton > button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
     }
     </style>
     """, unsafe_allow_html=True)
@@ -84,13 +83,11 @@ def render_header():
     inject_css()
     st.markdown(
         """
-        <div style='text-align:center; padding: 1.5rem 0 0.5rem;'>
-          <h1 style='font-size:2.4rem; font-weight:800;
-                     background: linear-gradient(90deg,#818cf8,#a78bfa,#60a5fa);
-                     -webkit-background-clip:text; -webkit-text-fill-color:transparent;'>
-            🧠 OutoLLM — AutoML Platform
+        <div style='padding: 1.2rem 0 0.4rem;'>
+          <h1 style='font-size:2rem; font-weight:700; color:#e5e7eb; margin:0;'>
+            OutoLLM &mdash; AutoML Platform
           </h1>
-          <p style='color:#9ca3af; font-size:1rem; margin-top:-0.4rem;'>
+          <p style='color:#6b7280; font-size:0.9rem; margin-top:0.25rem;'>
             Verilerinizden yapay zeka modelleri saniyeler içinde oluşturun.
           </p>
         </div>
